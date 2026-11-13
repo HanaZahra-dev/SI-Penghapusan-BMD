@@ -30,7 +30,8 @@ const Store = (() => {
     return { id: b._fid, sz: b.size, ty: b.type };
   }
   const rep = (k, v) => (k === 'files' && Array.isArray(v)) ? v.map(meta) : v;
-  const ser = () => JSON.stringify({ R: state.R, RX: state.RX, SVS: state.SVS, PEN: state.PEN }, rep);
+  /* OB = Daftar Objek Penaksiran, KK = Kertas Kerja, HP = Harga Pembanding (opsional: hanya disimpan bila diberikan ke init) */
+  const ser = () => JSON.stringify({ R: state.R, RX: state.RX, SVS: state.SVS, PEN: state.PEN, OB: state.OB, KK: state.KK, HP: state.HP }, rep);
   const same = (a, b) => JSON.stringify(a, rep) === JSON.stringify(b, rep);
 
   /* Logic Untuk Simpan  */
@@ -82,7 +83,7 @@ const Store = (() => {
   }
 
   function apply(o) {
-    const { R, RX, SVS, PEN } = state;
+    const { R, RX, SVS, PEN, OB, KK, HP } = state;
     const byNo = new Map(R.map(d => [d[0], d]));
     const rows = (o.R || []).map(d => { const old = byNo.get(d[0]); return old && same(old, d) ? old : d; });
     R.length = 0; R.push(...rows);
@@ -91,6 +92,10 @@ const Store = (() => {
       Object.keys(t).forEach(k => delete t[k]);
       for (const k of Object.keys(s)) t[k] = (old[k] !== undefined && same(old[k], s[k])) ? old[k] : s[k];
     }
+    /* Daftar Objek, Kertas Kerja, Harga Pembanding: hanya ditimpa bila ada di data tersimpan (data lama tanpa ketiganya tetap memakai data awal) */
+    if (OB && Array.isArray(o.OB)) { OB.length = 0; OB.push(...o.OB); }
+    if (HP && Array.isArray(o.HP)) { HP.length = 0; HP.push(...o.HP); }
+    if (KK && o.KK && typeof o.KK == 'object') { Object.keys(KK).forEach(k => delete KK[k]); Object.assign(KK, o.KK); }
     last = ser();    // tidak redudansi data
   }
 
