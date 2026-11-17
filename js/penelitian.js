@@ -177,7 +177,7 @@ function ptItems(no) {
 /* Jenis permohonan hanya 2: Pemindahtanganan / Izin Bongkar*/
 const ptJenis = d => (!d[4] || d[4] === 'Penghapusan') ? 'Izin Bongkar' : d[4];
 /* Nama BMD terkunci mengikuti jenis permohonan (tidak bisa diubah; ganti jenis = ajukan ulang). Jenis Proses boleh memilih salah satu atau keduanya */
-const PT_OPT_PROSES = ['Pemindahtanganan', 'Izin Bongkar', 'Izin Bongkar dan Pemindahtanganan'];
+const PT_OPT_PROSES = ['Pemindahtanganan', 'Izin Bongkar'];
 const PT_PROSES_LAMA = { 'Penjualan': 'Pemindahtanganan', 'Izin Bongkar dan Penjualan': 'Izin Bongkar dan Pemindahtanganan' };
 /* Perihal surat permohonan mengikuti jenis permohonan yang diajukan (Izin Bongkar / Pemindahtanganan) */
 const ptPerihalDef = d => ptJenis(d);
