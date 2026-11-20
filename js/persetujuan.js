@@ -299,7 +299,7 @@ function psjForm(s) {
     tgl: () => psjIn(k, j, f[k], { t: 'date' }),
     perihal: () => psjIn(k, j, f[k], { ph: 'Perihal persetujuan' }),
     tujuan: () => psjIn(k, j, f[k], { ph: IB ? 'Contoh: Kepala Dinas Pemuda dan Olahraga Kota Bogor' : 'Contoh: Kepala Badan Pendapatan Daerah Kota Bogor', list: 'psj_dl_t' }),
-    alasan: () => `<label class="l2 full">Isi alasan dari data persetujuan sebelumnya<select id="p_alasan_pick"><option value="">Pilih alasan…</option>${PSJ_MM.alasan.map((a, i) => `<option value="${i}">${esc(a[0])} - ${esc(a[1].length > 100 ? a[1].slice(0, 100) + '…' : a[1])}</option>`).join('')}</select></label>` + psjIn(k, j, f[k], { area: 1, full: 1, rows: 3, ph: 'Contoh: dalam rangka penataan dan pengembangan kawasan' }),
+    alasan: () => psjIn(k, j, f[k], { area: 1, full: 1, rows: 3, ph: 'Contoh: dalam rangka penataan dan pengembangan kawasan' }),
     opd: () => psjIn(k, j, f[k], { ph: 'Nama OPD pemohon' }),
     nopermohonan: () => psjIn(k, j, f[k], { ph: 'Nomor Surat Permohonan' }),
     tglpermohonan: () => psjIn(k, j, f[k], { t: 'date' }),
@@ -317,7 +317,6 @@ function psjForm(s) {
   psjRender(j);
   s.oninput = s.onchange = e => {
     const id = e.target.id || '';
-    if (id == 'p_alasan_pick') { const a = PSJ_MM.alasan[e.target.value]; if (a) $('#p_alasan').value = a[1]; }
     if (id == 'p_opd' && e.type == 'change') {
       const t = $('#p_tujuan'), nt = psjTujuanDef(e.target.value.trim(), j);
       if (t && (!t.value.trim() || t.value == autoT)) { t.value = nt; autoT = nt; }
