@@ -917,3 +917,7 @@ html[data-theme="dark"] .kvt input.tkn{background:var(--input);color:var(--ink)}
 .toast.ok::before,.toast.err::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:10px}
 .toast.ok::before{background:#4ade80}
 .toast.err::before{background:#f87171}
+
+/* Aksi metode penilaian per objek (Daftar Objek Penaksiran) */
+.mtg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.db.on{background:var(--bl);border-color:var(--bl);color:#fff}
