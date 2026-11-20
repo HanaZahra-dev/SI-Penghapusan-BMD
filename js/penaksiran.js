@@ -13,7 +13,7 @@ const TKS_COLS = ['KIB ID', 'Kode Barang', 'Nama Barang', 'Tahun', 'Kondisi', 'K
 const psjRef = (no, inline) => { const p = (SVS[no] || {}).psj; if (!p || p.st != 'Tersimpan') return '<span class="mt">-</span>'; const f = p.f || {}, tg = f.tgl ? psjTgl(f.tgl) : ''; return inline ? `<b>${esc(f.nomor || '-')}</b>${tg ? ' · ' + esc(tg) : ''}` : `<b>${esc(f.nomor || '-')}</b>${tg ? `<div class="mt" style="font-size:12px">${esc(tg)}</div>` : ''}`; };
 const tksNz = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
 const tksX = no => (RX[no] || {}).tks || null;
-const tksFromKib = no => (((RX[no] || {}).f || {}).kib || []).map(q => { const r = K[q]; return { kib: r[0], kode: r[1], nama: r[2], tahun: r[3], kondisi: r[4], qty: r[5], sat: r[6], tonase: '', satt: 'Kg' }; });
+const tksFromKib = no => (((RX[no] || {}).f || {}).kib || []).map(q => { const r = K[q]; return { kib: r[0], kode: r[1], nama: r[2], tahun: r[3], kondisi: r[4], qty: r[5], sat: r[6], tonase: '', satt: 'Kg', bahan: '' }; });
 const tksRows = no => { const t = tksX(no); return t && Array.isArray(t.rows) ? t.rows : tksFromKib(no); };
 function tksEnsure(no) {
   const x = RX[no] = RX[no] || { h: [] };
@@ -129,7 +129,8 @@ function tksDetail(s) {
     (ro ? '' : `<label class="btn o sm" style="cursor:pointer">${doc ? 'Ganti' : 'Upload'}<input type="file" id="tk_doc" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/png,image/jpeg" hidden></label>${doc ? '<button type="button" class="btn o sm" data-tk="deldoc">Hapus</button>' : ''}`) + `</div></div>`;
   const imp = ro ? '' : `<div class="tks-seg" role="group" aria-label="Cara pengisian"><button type="button" data-tm="manual" class="${tksMode == 'manual' ? 'on' : ''}">Isi Manual</button><button type="button" data-tm="excel" class="${tksMode == 'excel' ? 'on' : ''}">Import Excel</button></div>` +
     (tksMode == 'excel' ? `<div class="tks-imp"><div class="pt-bar" style="margin:0"><label class="btn sm" style="cursor:pointer">Pilih File Excel<input type="file" id="tk_xl" accept=".xlsx" hidden></label><button type="button" class="btn o sm" data-tk="tpl">Unduh Template Excel</button>${t && t.src == 'excel' ? '<button type="button" class="btn o sm" data-tk="reset">Kembalikan data permohonan</button>' : ''}</div><p class="mt" style="font-size:12px;margin:8px 0 0">Kolom: ${TKS_COLS.join(', ')} (Satuan Tonase: Kg atau Ton). Tabel di bawah akan diisi otomatis dari file${t && t.src == 'excel' && t.srcName ? '. Terakhir diimpor: <b>' + esc(t.srcName) + '</b>' : ''}.</p></div>` : '');
-  const tbl = rows.length ? `<div class="tw"><table class="kvt"><thead><tr><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th><th>Tonase</th><th>Satuan Tonase</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td class="mono"><b>${esc(r.kib)}</b></td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.tahun)}</td><td>${esc(r.kondisi)}</td><td>${esc(r.qty)}</td><td>${esc(r.sat)}</td>` +
+  const tbl = rows.length ? `<div class="tw"><table class="kvt"><thead><tr><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th><th>Bahan</th><th>Tonase</th><th>Satuan Tonase</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td class="mono"><b>${esc(r.kib)}</b></td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.tahun)}</td><td>${esc(r.kondisi)}</td><td>${esc(r.qty)}</td><td>${esc(r.sat)}</td>` +
+    `<td><input class="tkn" type="text" style="width:150px" maxlength="80" data-tb="${i}" value="${esc(r.bahan)}" placeholder="Contoh: Besi" aria-label="Bahan ${esc(r.nama)}"${dis}></td>` +
     `<td><input class="tkn" type="number" min="0" step="any" inputmode="decimal" data-ti="${i}" value="${esc(r.tonase)}" placeholder="0" aria-label="Tonase ${esc(r.nama)}"${dis}></td>` +
     `<td><select class="dsel" data-ts="${i}" aria-label="Satuan tonase ${esc(r.nama)}"${dis}>${TKS_SAT.map(o => `<option${o == r.satt ? ' selected' : ''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div><div class="kvs" id="tk_sum">${tksSumHtml(no)}</div>`
     : EM('Belum ada barang', ro ? 'Tidak ada data barang.' : 'Pilih "Import Excel" lalu unggah file untuk mengisi daftar barang.');
@@ -160,7 +161,9 @@ function tksDetail(s) {
     const si = el.dataset && el.dataset.ts; if (si != null) { const T = tksEnsure(no); T.rows[+si].satt = el.value; T.saved = false; const sm = $('#tk_sum'); if (sm) sm.innerHTML = tksSumHtml(no); tksSyncActions(s, no); }
   };
   s.oninput = e => {
-    const el = e.target, i = el.dataset && el.dataset.ti; if (ro || i == null) return;
+    const el = e.target;
+    if (!ro && el.dataset && el.dataset.tb != null) { const T = tksEnsure(no); T.rows[+el.dataset.tb].bahan = el.value; T.saved = false; tksSyncActions(s, no); return; }
+    const i = el.dataset && el.dataset.ti; if (ro || i == null) return;
     const T = tksEnsure(no); T.rows[+i].tonase = el.value; T.saved = false;
     const sm = $('#tk_sum'); if (sm) sm.innerHTML = tksSumHtml(no);
     tksSyncActions(s, no);
@@ -211,7 +214,7 @@ function tksAdminList(s) {
   const rows = all.filter(x => x.T && (x.T.st == 'Diajukan' || x.V && x.V.st == 'Ditolak'));
   const pending = rows.filter(x => x.T.st == 'Diajukan' && (!x.V || x.V.st == 'Menunggu Verifikasi' || x.V.st == 'Belum Diajukan'));
   const done = rows.filter(x => x.V && ['Disetujui', 'Ditolak'].includes(x.V.st));
-  const table = (list, processed) => list.length ? `<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Barang</th><th>Status Verifikasi</th><th>Aksi</th></tr></thead><tbody>${list.map((x, i) => `<tr><td>${i + 1}</td><td><b>${esc(x.d[0])}</b></td><td>${esc(x.d[5])}</td><td>${esc(x.d[1])}</td><td>${Array.isArray(x.T.rows) ? x.T.rows.length : 0}</td><td>${processed ? PL(x.V.st == 'Disetujui' ? 's-g' : 's-r', x.V.st) : PL('s-o', 'Menunggu Verifikasi')}</td><td><button class="btn ${processed ? 'o ' : ''}sm" data-tkad="${esc(x.d[0])}">${processed ? 'Lihat' : 'Periksa'}</button></td></tr>`).join('')}</tbody></table></div>` : EM(processed ? 'Belum ada hasil verifikasi' : 'Tidak ada permohonan menunggu', processed ? 'Hasil verifikasi penaksiran akan muncul di sini.' : 'Permohonan penaksiran yang sudah diajukan pengguna barang akan muncul di sini.');
+  const table = (list, processed) => list.length ? `<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Barang</th><th>Status Verifikasi</th><th>Aksi</th></tr></thead><tbody>${list.map((x, i) => `<tr><td>${i + 1}</td><td><b>${esc(x.d[0])}</b></td><td>${esc(x.d[5])}</td><td>${esc(x.d[1])}</td><td>${Array.isArray(x.T.rows) ? x.T.rows.length : 0}</td><td>${processed ? PL(x.V.st == 'Disetujui' ? 's-g' : 's-r', x.V.st) : x.V.draft ? PL('s-b', 'Draft Verifikasi') : PL('s-o', 'Menunggu Verifikasi')}</td><td><button class="btn ${processed ? 'o ' : ''}sm" data-tkad="${esc(x.d[0])}">${processed ? 'Lihat' : x.V.draft ? 'Lanjutkan' : 'Periksa'}</button></td></tr>`).join('')}</tbody></table></div>` : EM(processed ? 'Belum ada hasil verifikasi' : 'Tidak ada permohonan menunggu', processed ? 'Hasil verifikasi penaksiran akan muncul di sini.' : 'Permohonan penaksiran yang sudah diajukan pengguna barang akan muncul di sini.');
   s.innerHTML = HD('Verifikasi Permohonan Penaksiran', '') +
     sec('Menunggu Verifikasi', `${pending.length} permohonan`) + table(pending, false) + '</div>' +
     sec('Riwayat Verifikasi', `${done.length} permohonan`) + table(done, true) + '</div>';
@@ -237,13 +240,13 @@ function tksAdminDetail(s) {
   const qf = (k, title, sub) => `<button type="button" class="qc${fk == k ? ' on' : ''}" data-tkaf="${esc(k)}" aria-pressed="${fk == k}"><b>${esc(title)}</b><small>${sub}</small></button>`;
   const qb = (v, title, sub) => `<button type="button" class="qc${allV(v) ? ' on' : ''}" data-tkab="${v}" aria-pressed="${allV(v)}"${filtered.length ? '' : ' disabled'}><b>${title}</b><small>${sub}</small></button>`;
   const diperiksa = rows.filter((r, i) => V.check[i]).length;
-  const table = rows.length ? `<div class="qk"><div class="qg"><span>Filter kondisi barang</span><div>${qf('', 'Semua', rows.length + ' barang')}${kinds.map(k => qf(k, k, cnt(k) + ' barang')).join('')}</div></div>${ro ? '' : `<div class="qg"><span>Isi cepat kesesuaian${fk ? ' (barang yang tampil)' : ''}</span><div>${qb('ok', 'Semua Sesuai', 'Sesuai data KIB')}${qb('no', 'Semua Tidak Sesuai', 'Tidak sesuai data KIB')}</div></div>`}${fk ? '<button type="button" class="btn o sm" data-tkaf-reset>Hapus Filter</button>' : ''}</div><div class="tw"><table class="kvt"><thead><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Tahun</th><th>Qty</th><th>Tonase</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr></thead><tbody>${filtered.length ? '' : '<tr><td colspan="10" class="mt" style="text-align:center;padding:26px">Tidak ada barang dengan kondisi ini. Klik “Semua” untuk menampilkan seluruh barang.</td></tr>'}${filtered.map(({ r, i }, k) => `<tr><td>${k + 1}</td><td class="mono">${esc(r.kib)}</td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.tahun)}</td><td>${esc(r.qty)} ${esc(r.sat)}</td><td>${esc(r.tonase)} ${esc(r.satt)}</td><td>${esc(r.kondisi)}</td><td>${select(V.check[i], 'row', i, ro)}</td><td>${V.check[i] == 'no' && !ro ? `<textarea data-tka-note="row" data-ti="${i}" rows="2" placeholder="Keterangan (wajib)">${esc(V.notes[i] || '')}</textarea>` : V.check[i] == 'no' ? esc(V.notes[i] || '-') : '-'}</td></tr>`).join('')}</tbody></table></div>` : EM('Belum ada barang', 'Permohonan tidak memiliki rincian barang tonase.');
+  const table = rows.length ? `<div class="qk"><div class="qg"><span>Filter kondisi barang</span><div>${qf('', 'Semua', rows.length + ' barang')}${kinds.map(k => qf(k, k, cnt(k) + ' barang')).join('')}</div></div>${ro ? '' : `<div class="qg"><span>Isi cepat kesesuaian${fk ? ' (barang yang tampil)' : ''}</span><div>${qb('ok', 'Semua Sesuai', 'Sesuai data KIB')}${qb('no', 'Semua Tidak Sesuai', 'Tidak sesuai data KIB')}</div></div>`}${fk ? '<button type="button" class="btn o sm" data-tkaf-reset>Hapus Filter</button>' : ''}</div><div class="tw"><table class="kvt"><thead><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Tahun</th><th>Qty</th><th>Bahan</th><th>Tonase</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr></thead><tbody>${filtered.length ? '' : '<tr><td colspan="11" class="mt" style="text-align:center;padding:26px">Tidak ada barang dengan kondisi ini. Klik “Semua” untuk menampilkan seluruh barang.</td></tr>'}${filtered.map(({ r, i }, k) => `<tr><td>${k + 1}</td><td class="mono">${esc(r.kib)}</td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.tahun)}</td><td>${esc(r.qty)} ${esc(r.sat)}</td><td>${esc(r.bahan) || '-'}</td><td>${esc(r.tonase)} ${esc(r.satt)}</td><td>${esc(r.kondisi)}</td><td>${select(V.check[i], 'row', i, ro)}</td><td>${V.check[i] == 'no' && !ro ? `<textarea data-tka-note="row" data-ti="${i}" rows="2" placeholder="Keterangan (wajib)">${esc(V.notes[i] || '')}</textarea>` : V.check[i] == 'no' ? esc(V.notes[i] || '-') : '-'}</td></tr>`).join('')}</tbody></table></div>` : EM('Belum ada barang', 'Permohonan tidak memiliki rincian barang tonase.');
   s.innerHTML = HD('Verifikasi Permohonan Penaksiran', `${esc(no)} · ${esc(d[1])}`, '<button class="btn o" data-tka-back>← Kembali</button>') +
-    sec('Ringkasan Permohonan', ro ? 'Hasil verifikasi hanya dapat dilihat.' : 'Periksa dokumen dan kesesuaian data tonase.', PL(ro ? V.st == 'Disetujui' ? 's-g' : 's-r' : 's-o', ro ? V.st : 'Menunggu Verifikasi')) +
+    sec('Ringkasan Permohonan', ro ? 'Hasil verifikasi hanya dapat dilihat.' : 'Periksa dokumen dan kesesuaian data tonase.', PL(ro ? V.st == 'Disetujui' ? 's-g' : 's-r' : V.draft ? 's-b' : 's-o', ro ? V.st : V.draft ? 'Draft Verifikasi' : 'Menunggu Verifikasi')) +
     `<dl><dt>Jenis</dt><dd>${esc(d[4])}</dd><dt>Tanggal Surat</dt><dd>${esc(d[5])}</dd><dt>Perangkat Daerah</dt><dd>${esc(d[1])}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd><dt>Status Permohonan Penaksiran</dt><dd>${PL(tksStat(no)[0], tksStat(no)[1])}</dd></dl>${ro && reason ? `<div class="al2 rjb" style="margin-top:14px"><b>Catatan Admin:</b> ${esc(reason)}</div>` : ''}</div>` +
     sec('Verifikasi Dokumen', 'Surat Tanggung Jawab Mutlak', PL(V.doc == 'ok' ? 's-g' : V.doc == 'no' ? 's-r' : 's-n', V.doc == 'ok' ? 'Sesuai' : V.doc == 'no' ? 'Tidak Sesuai' : 'Belum diperiksa')) + `<div class="drs">${docHtml}</div></div>` +
     sec('Daftar Barang / KIB yang Disurvei', 'Filter kondisi hanya mengatur tampilan. Gunakan Isi cepat untuk menandai banyak barang sekaligus, atau pilih per barang.', `<span class="stt ${rows.length && diperiksa == rows.length ? 's-g' : 's-b'}">Diperiksa ${diperiksa}/${rows.length}</span> <span class="stt s-b">${filtered.length}/${rows.length} ditampilkan</span>`) + table + '</div>' +
-    (ro ? '' : `<div class="ff"><label class="l2 full">Catatan keputusan Admin<textarea id="tka_cat" rows="3" placeholder="Alasan penolakan atau catatan untuk pemohon...">${esc(V.cat || '')}</textarea></label></div><div style="text-align:right;margin-bottom:20px;display:flex;gap:10px;justify-content:flex-end"><button class="btn dng" data-tka-act="reject">Tolak</button><button class="btn" data-tka-act="approve">Setujui &amp; Lanjut ke Daftar Objek</button></div>`);
+    (ro ? '' : `<div class="ff"><label class="l2 full">Catatan keputusan Admin<textarea id="tka_cat" rows="3" placeholder="Alasan penolakan atau catatan untuk pemohon...">${esc(V.cat || '')}</textarea></label></div><div style="text-align:right;margin-bottom:20px;display:flex;gap:10px;justify-content:flex-end"><button class="btn o" data-tka-act="draft">Simpan Draft</button><button class="btn dng" data-tka-act="reject">Tolak</button><button class="btn" data-tka-act="approve">Setujui &amp; Lanjut ke Daftar Objek</button></div>`);
   s.onchange = e => {
     const el = e.target.closest('[data-tka]');
     if (!el || ro) return;
@@ -252,6 +255,7 @@ function tksAdminDetail(s) {
     Store.persist(); pgTksAdmin();
   };
   s.oninput = e => {
+    if (!ro && e.target.id == 'tka_cat') { V.cat = e.target.value; return; }
     const el = e.target.closest('[data-tka-note]');
     if (!el || ro) return;
     if (el.dataset.tkaNote == 'doc') V.docNote = el.value;
@@ -280,6 +284,10 @@ function tksAdminDetail(s) {
     if (!action || ro) return;
     if (!can('verifikasi')) return deny();
     V.cat = ($('#tka_cat') || {}).value.trim();
+    if (action.dataset.tkaAct == 'draft') {
+      V.draft = true; V.draftTs = nowStr(); Store.persist();
+      toast('Draft verifikasi penaksiran disimpan. Anda dapat melanjutkannya nanti.'); tksAdminCur = null; return pgTksAdmin();
+    }
     const missingRows = rows.map((r, i) => i).filter(i => !V.check[i]);
     const rejectedRows = rows.map((r, i) => i).filter(i => V.check[i] == 'no');
     const noRowNote = rejectedRows.find(i => !String(V.notes[i] || '').trim());
@@ -292,7 +300,7 @@ function tksAdminDetail(s) {
       return cfm('Setujui permohonan penaksiran?', 'Data yang disetujui akan diteruskan ke Daftar Objek Penaksiran.', () => {
         const U = tksX(no), X = tksAdminVerif(no);
         if (!U || U.st != 'Diajukan' || X.st == 'Disetujui') return;
-        X.st = 'Disetujui'; X.ts = nowStr(); X.cat = V.cat; X.obId = X.obId || Date.now();
+        X.st = 'Disetujui'; X.draft = false; X.ts = nowStr(); X.cat = V.cat; X.obId = X.obId || Date.now();
         hs(no, 'Permohonan penaksiran disetujui Admin, lanjut ke Daftar Objek Penaksiran', CUR.name);
         Store.persist(); toast('Permohonan disetujui dan diteruskan ke Daftar Objek Penaksiran.');
         tksAdminCur = null; show('ob');
@@ -304,7 +312,7 @@ function tksAdminDetail(s) {
     return cfm('Tolak permohonan penaksiran?', 'Permohonan dikembalikan kepada Pengguna Barang untuk diperbaiki dan diajukan ulang.', () => {
       const U = tksX(no), X = tksAdminVerif(no);
       if (!U || U.st != 'Diajukan') return;
-      X.st = 'Ditolak'; X.ts = nowStr(); U.st = 'Draft'; U.saved = true;
+      X.st = 'Ditolak'; X.draft = false; X.ts = nowStr(); U.st = 'Draft'; U.saved = true;
       hs(no, 'Permohonan penaksiran ditolak Admin', (CUR.name || '') + (X.cat ? ' · ' + X.cat : ''));
       Store.persist(); toast('Permohonan ditolak dan dikembalikan untuk diperbaiki.');
       tksAdminCur = null; pgTksAdmin();
