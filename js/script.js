@@ -640,7 +640,7 @@ function terapkanRemote(o){
  if(b)toast(isAdmin()?(!lama.has(b[0])||lama.get(b[0])=='Draft'?'Permohonan baru masuk: '+b[0]+' ('+b[1]+')':'Status '+b[0]+' berubah: '+b[6]):'Status '+b[0]+' kini: '+b[6])}
 Store.onRemote(terapkanRemote,()=>location.reload());
 /* Start: muat data bersama (atau simpan data awal bila belum ada). lalu pilihkan sesi tab ini */
-Store.init({R,RX,SVS,PEN,OB,KK,HP},a=>samplePdf(a[0],a[1])).then(()=>{
+Store.init({R,RX,SVS,PEN,OB,KK,HP},a=>samplePdf(a[0],a[1]),'seed-2026-11-20').then(()=>{
  Store.watch();
  const tq=location.search.match(/[?&]ttd=([\w-]+)/);if(tq){ttdPage(tq[1]);return}
  if(CUR)fl();else{const a=loadSession();if(a)masuk(a);else $('#lu').value=lastEmail()}});
