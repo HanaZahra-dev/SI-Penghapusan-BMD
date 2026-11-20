@@ -244,7 +244,7 @@ function ptRows(r, q) {
 function ptList(s) {
   const r = svRows().filter(d => SVS[d[0]].st == 'Selesai');
   s.innerHTML = HD('Penelitian Tim Penghapusan', '') +
-    `<div class="cs pt-sum"><div class="c3"><u><svg class="i"><use href="#c"></use></svg></u><div><small>Survei selesai</small><b>${r.length}</b><em class="tr up"><span>Menunggu penelitian</span></em></div></div><div class="c1"><u><svg class="i"><use href="#b"></use></svg></u><div><small>Tujuan penelitian</small><b class="tx">Administratif</b><em class="tr up"><span></span></em></div></div><div class="c2"><u><svg class="i"><use href="#f"></use></svg></u><div><small>Output</small><b class="tx">Berita Acara</b><em class="tr up"><span>Hasil dan rekomendasi tim</span></em></div></div></div>` +
+    `<div class="cs pt-sum"><div class="c3"><u><svg class="i"><use href="#c"></use></svg></u><div><small>Survei selesai</small><b>${r.length}</b><em class="tr up"><span>Menunggu penelitian</span></em></div></div><div class="c1"><u><svg class="i"><use href="#b"></use></svg></u><div><b class="tx"></b><em class="tr up"><span></span></em></div></div><div class="c2"><u><svg class="i"><use href="#f"></use></svg></u><div><small>Output</small><b class="tx">Berita Acara</b><em class="tr up"><span>Hasil dan rekomendasi tim</span></em></div></div></div>` +
     ptMMCard() +
     `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Hasil Survei</h2><small class="mt"></small></div><label class="sr2 pt-q"><svg class="i"><use href="#sq"></use></svg><input id="pt_q" placeholder="Cari nomor surat atau perangkat daerah…"></label></div>` +
     `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Usulan</th><th>Jumlah Objek</th><th>Tanggal Selesai</th><th>Status Penelitian</th><th>Status BA TTD</th><th>Aksi</th></tr></thead><tbody id="pt_tb">${ptRows(r, '')}</tbody></table></div></div>`;
@@ -358,9 +358,9 @@ function ptBaBlobUrl(b) {
   } catch (e) { return b.img; }
 }
 const ptBaRe = () => ptList($('#pt'));
-function ptBaPick(no, re) {
+function ptBaPick(no, re, k = 'ba') {   /* k: 'ba' = BA TTD Penelitian, 'psjBa' = BA TTD Persetujuan (dokumen berbeda) */
   const S = SVS[no]; if (!S) return;
-  if (S.ba && S.ba.st == 'Selesai') return toast('BA TTD sudah selesai dan tidak dapat diedit.');
+  if (S[k] && S[k].st == 'Selesai') return toast('BA TTD sudah selesai dan tidak dapat diedit.');
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/pdf,image/png,image/jpeg';
   inp.onchange = () => {
     const f = inp.files[0]; if (!f) return;
@@ -368,23 +368,23 @@ function ptBaPick(no, re) {
     if (f.size > PT_BA_MAX) return toast('Ukuran berkas maksimal 2 MB.');
     const r = new FileReader(); r.onerror = () => toast('Berkas gagal dibaca.');
     r.onload = () => {
-      const T = SVS[no]; if (!T || (T.ba && T.ba.st == 'Selesai')) return;
-      const baru = !T.ba;
-      T.ba = { n: f.name, ty: f.type, sz: f.size, img: r.result, ts: nowStr(), st: 'Draft' };
+      const T = SVS[no]; if (!T || (T[k] && T[k].st == 'Selesai')) return;
+      const baru = !T[k];
+      T[k] = { n: f.name, ty: f.type, sz: f.size, img: r.result, ts: nowStr(), st: 'Draft' };
       Store.persist(); toast(baru ? 'BA TTD berhasil diunggah (Draft).' : 'Berkas BA TTD diganti.'); (re || ptBaRe)();
     };
     r.readAsDataURL(f);
   };
   inp.click();
 }
-function ptBaDel(no, re) {
-  const S = SVS[no]; if (!S || !S.ba) return;
-  if (S.ba.st == 'Selesai') return toast('BA TTD sudah selesai dan tidak dapat dihapus.');
-  cfm('Hapus BA TTD?', 'Berkas yang sudah diunggah akan dihapus.', () => { const U = SVS[no]; if (!U || (U.ba && U.ba.st == 'Selesai')) return; delete U.ba; Store.persist(); toast('BA TTD dihapus.'); (re || ptBaRe)(); }, 'Hapus');
+function ptBaDel(no, re, k = 'ba') {
+  const S = SVS[no]; if (!S || !S[k]) return;
+  if (S[k].st == 'Selesai') return toast('BA TTD sudah selesai dan tidak dapat dihapus.');
+  cfm('Hapus BA TTD?', 'Berkas yang sudah diunggah akan dihapus.', () => { const U = SVS[no]; if (!U || (U[k] && U[k].st == 'Selesai')) return; delete U[k]; Store.persist(); toast('BA TTD dihapus.'); (re || ptBaRe)(); }, 'Hapus');
 }
-function ptBaPreview(no, re) {
-  const S = SVS[no]; if (!S || !S.ba) return;
-  const b = S.ba, done = b.st == 'Selesai', url = ptBaBlobUrl(b), isImg = /^image\//.test(b.ty);
+function ptBaPreview(no, re, k = 'ba') {
+  const S = SVS[no]; if (!S || !S[k]) return;
+  const b = S[k], done = b.st == 'Selesai', url = ptBaBlobUrl(b), isImg = /^image\//.test(b.ty);
   const old = $('#ba_md'); if (old) old.remove();
   const m = document.createElement('div'); m.id = 'ba_md'; m.className = 'bamd';
   m.innerHTML = `<div class="bamd-c" role="dialog" aria-modal="true"><div class="bamd-h"><div><b>${esc(b.n)}</b><small class="mt">${esc(ptSize(b.sz))} · ${esc(b.ts || '')} · ${done ? 'Selesai' : 'Draft'}</small></div><button type="button" class="ic-b" data-x="1" aria-label="Tutup">&times;</button></div>` +
@@ -397,7 +397,7 @@ function ptBaPreview(no, re) {
   m.onclick = e => {
     if (e.target === m || e.target.closest('[data-x]')) return close();
     if (e.target.closest('[data-fin]')) cfm('Selesaikan BA TTD?', 'Berkas akan dikunci dan tidak dapat diedit atau dihapus lagi.', () => {
-      const U = SVS[no]; if (!U || !U.ba) return; U.ba.st = 'Selesai'; U.ba.ts = nowStr(); Store.persist(); close(); toast('BA TTD selesai dan dikunci.'); (re || ptBaRe)();
+      const U = SVS[no]; if (!U || !U[k]) return; U[k].st = 'Selesai'; U[k].ts = nowStr(); Store.persist(); close(); toast('BA TTD selesai dan dikunci.'); (re || ptBaRe)();
     }, 'Selesai');
   };
 }
