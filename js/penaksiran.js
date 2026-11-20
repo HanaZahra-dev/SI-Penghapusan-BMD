@@ -343,7 +343,7 @@ function tahapNow(d) {
     if (T) {
       if (V && V.st == 'Disetujui') {
         const o = OB.find(x => x.tksNo == no);
-        if (o && KK[o.id] && KK[o.id].done) return 'Penaksiran · laporan penaksiran tersedia';
+        if (o && kkAllDone(o)) return 'Penaksiran · laporan penaksiran tersedia';
         if (o && o.st == 'Posted') return 'Penaksiran · Kertas Kerja Penaksiran';
         return 'Penaksiran · diproses Admin (Daftar Objek)';
       }
@@ -371,7 +371,7 @@ function tahapShort(d) {
     if (T) {
       if (V && V.st == 'Disetujui') {
         const o = OB.find(x => x.tksNo == no);
-        if (o && KK[o.id] && KK[o.id].done) return 'Laporan Penaksiran';
+        if (o && kkAllDone(o)) return 'Laporan Penaksiran';
         if (o && o.st == 'Posted') return 'Kertas Kerja';
         return 'Daftar Objek';
       }
