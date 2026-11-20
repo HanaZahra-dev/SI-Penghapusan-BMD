@@ -250,8 +250,8 @@ function psjRows(r, q) {
   return f.map((d, i) => {
     const S = SVS[d[0]], st = psjStat(d[0]), p = S.psj, pen = ptStat(d[0]);
     return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(psjJenis(d))}</td>` +
-      `<td>${PL(pen[0], pen[1])}</td><td>${S.ba ? PL(S.ba.st == 'Selesai' ? 's-g' : 's-o', S.ba.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum upload</span>'}</td>` +
-      `<td>${PL(st[0], st[1])}</td><td>${psjOk(d[0]) ? (a => PL(a[0], a[1]))(tksStat(d[0])) : '<span class="mt">Menunggu persetujuan</span>'}</td><td><div class="pt-ac"><button class="btn sm" data-psj="${esc(d[0])}">${p ? (p.st == 'Tersimpan' ? 'Lihat / Ubah' : 'Lanjutkan') : 'Input Persetujuan'}</button>${S.ba ? ptBaIcons(d[0], S.ba.st == 'Selesai') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload BA TTD</button>`}</div></td></tr>`;
+      `<td>${PL(pen[0], pen[1])}</td><td>${S.psjBa ? PL(S.psjBa.st == 'Selesai' ? 's-g' : 's-o', S.psjBa.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum upload</span>'}</td>` +
+      `<td>${PL(st[0], st[1])}</td><td>${psjOk(d[0]) ? (a => PL(a[0], a[1]))(tksStat(d[0])) : '<span class="mt">Menunggu persetujuan</span>'}</td><td><div class="pt-ac"><button class="btn sm" data-psj="${esc(d[0])}">${p ? (p.st == 'Tersimpan' ? 'Lihat / Ubah' : 'Lanjutkan') : 'Input Persetujuan'}</button>${S.psjBa ? ptBaIcons(d[0], S.psjBa.st == 'Selesai') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload BA TTD</button>`}</div></td></tr>`;
   }).join('');
 }
 function psjList(s) {
@@ -276,10 +276,10 @@ function psjList(s) {
       if (a == 'reset') { psjMMReset(); toast('Data bawaan dikembalikan.'); return psjList(s); }
     }
     const re = () => psjList(s);
-    const u = e.target.closest('[data-ba]'); if (u) return ptBaPick(u.dataset.ba, re);
-    const v = e.target.closest('[data-bv]'); if (v) return ptBaPreview(v.dataset.bv, re);
-    const ed = e.target.closest('[data-be]'); if (ed && !ed.disabled) return ptBaPick(ed.dataset.be, re);
-    const dl = e.target.closest('[data-bd]'); if (dl && !dl.disabled) return ptBaDel(dl.dataset.bd, re);
+    const u = e.target.closest('[data-ba]'); if (u) return ptBaPick(u.dataset.ba, re, 'psjBa');
+    const v = e.target.closest('[data-bv]'); if (v) return ptBaPreview(v.dataset.bv, re, 'psjBa');
+    const ed = e.target.closest('[data-be]'); if (ed && !ed.disabled) return ptBaPick(ed.dataset.be, re, 'psjBa');
+    const dl = e.target.closest('[data-bd]'); if (dl && !dl.disabled) return ptBaDel(dl.dataset.bd, re, 'psjBa');
     const b = e.target.closest('[data-psj]'); if (b) { psjCur = b.dataset.psj; pgPsj(); window.scrollTo(0, 0); }
   };
 }
