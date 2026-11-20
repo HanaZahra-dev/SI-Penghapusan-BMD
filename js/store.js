@@ -101,8 +101,19 @@ const Store = (() => {
 
   return {
  /* Sinkronin data yang sedang ditampilkan */
-    async init(st, seedMaker) {
+    /* seedVer: versi data awal (dummy). Bila berbeda dengan versi yang tercatat di browser, data tersimpan lama dibuang
+       dan data awal yang baru dipakai. Ganti teksnya setiap kali data awal diubah. */
+    async init(st, seedMaker, seedVer) {
       state = st; makeSeed = seedMaker;
+      if (seedVer) {
+        try {
+          if (localStorage.getItem('sipbmd-seed-ver') !== String(seedVer)) {
+            localStorage.removeItem(KEY); cache.clear(); pending.clear(); last = null;
+            try { await tx('readwrite', s => s.clear()); } catch (e) { /* abaikan */ }
+            localStorage.setItem('sipbmd-seed-ver', String(seedVer));
+          }
+        } catch (e) { console.warn('[Store] Gagal memeriksa versi data awal.', e); }
+      }
       let o = null;
       try { o = await load(); } catch (e) { console.warn('[Store] Data tersimpan rusak, memakai data awal.', e); }
       if (o) apply(o); else { last = null; await persist(); }
