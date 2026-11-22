@@ -5,15 +5,19 @@
    Data: RX[no].tks = { st: 'Draft' | 'Diajukan', ts, src: 'permohonan' | 'excel', srcName, rows: [...], doc: { name, ty, size, files: [Blob] } } */
 let tksCur = null, tksMode = 'manual', tksAdminCur = null;
 let tksAdminFilter = { kondisi: '' };
-const TKS_SAT = ['Kg', 'Ton'];
+const TKS_SAT = ['Kg', 'Ton', 'Unit'];
+const TKS_BAHAN = ['Besi', 'Plastik', 'Besi dan Busa', 'Plastik dan Busa', 'Aluminium', 'Baja', 'Kertas', 'Kayu', 'Lainnya'];
+/* Bahan menentukan material (kelompok harga pembanding) dan metode awal: Kayu (barang satuan) = Pendekatan Biaya, bahan lain = Pendekatan Pasar */
+const bahanMat = b => { const t = String(b || '').trim().toLowerCase(); return /besi/.test(t) ? 'Besi' : /plastik/.test(t) ? 'Plastik' : /alumin/.test(t) ? 'Aluminium' : 'Lainnya'; };
+const bahanMetode = b => /kayu/i.test(String(b || '')) ? 'Pendekatan Biaya' : 'Pendekatan Pasar';
 const TKS_DOC_MAX = 10 * 1024 * 1024, TKS_ROWS_MAX = 500;
-const TKS_COLS = ['KIB ID', 'Kode Barang', 'Nama Barang', 'Tahun', 'Kondisi', 'Kuantitas', 'Satuan', 'Tonase', 'Satuan Tonase'];
+const TKS_COLS = ['KIB ID', 'Kode Barang', 'Nama Barang', 'No. Register', 'Merk / Type', 'Bahan', 'Tahun', 'Kondisi', 'Kuantitas', 'Satuan', 'Tonase', 'Satuan Tonase'];
 
 /* Rujukan ke Persetujuan Kepala Daerah: nomor dan tanggal surat persetujuan */
 const psjRef = (no, inline) => { const p = (SVS[no] || {}).psj; if (!p || p.st != 'Tersimpan') return '<span class="mt">-</span>'; const f = p.f || {}, tg = f.tgl ? psjTgl(f.tgl) : ''; return inline ? `<b>${esc(f.nomor || '-')}</b>${tg ? ' · ' + esc(tg) : ''}` : `<b>${esc(f.nomor || '-')}</b>${tg ? `<div class="mt" style="font-size:12px">${esc(tg)}</div>` : ''}`; };
 const tksNz = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
 const tksX = no => (RX[no] || {}).tks || null;
-const tksFromKib = no => (((RX[no] || {}).f || {}).kib || []).map(q => { const r = K[q]; return { kib: r[0], kode: r[1], nama: r[2], tahun: r[3], kondisi: r[4], qty: r[5], sat: r[6], tonase: '', satt: 'Kg', bahan: '' }; });
+const tksFromKib = no => (((RX[no] || {}).f || {}).kib || []).map(q => { const r = K[q]; return { kib: r[0], kode: r[1], nama: r[2], reg: '', merk: '', bahan: '', tahun: r[3], kondisi: r[4], qty: r[5], sat: r[6], tonase: '', satt: 'Kg' }; });
 const tksRows = no => { const t = tksX(no); return t && Array.isArray(t.rows) ? t.rows : tksFromKib(no); };
 function tksEnsure(no) {
   const x = RX[no] = RX[no] || { h: [] };
@@ -40,7 +44,7 @@ function tksNum(v) {
   const n = Number(s); return isFinite(n) ? n : NaN;
 }
 const tksFmt = n => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 3 });
-const tksKg = r => { const n = tksNum(r.tonase); return isNaN(n) ? 0 : (r.satt == 'Ton' ? n * 1000 : n); };
+const tksKg = r => { const n = tksNum(r.tonase); return isNaN(n) || r.satt == 'Unit' ? 0 : (r.satt == 'Ton' ? n * 1000 : n); };
 const tksSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 function tksSumHtml(no) {
   const a = tksRows(no), isi = a.filter(r => tksNum(r.tonase) > 0).length, kg = a.reduce((s, r) => s + tksKg(r), 0);
@@ -51,25 +55,35 @@ function tksSumHtml(no) {
 function tksParse(sheets) {
   const sh = sheets.find(x => /tonase|barang/i.test(x.name)) || sheets[0];
   if (!sh) throw new Error('Tidak ada lembar kerja pada file.');
-  const hi = sh.rows.findIndex(r => Array.from(r || [], c => tksNz(c).toLowerCase()).some(c => /^nama(\s*barang)?$/.test(c)));
+  const NAMA = /(^|\/\s*)nama(\s*barang)?$/;
+  const hi = sh.rows.findIndex(r => Array.from(r || [], c => tksNz(c).toLowerCase()).some(c => NAMA.test(c)));
   if (hi < 0) throw new Error('Baris judul kolom tidak ditemukan. Pastikan ada kolom "Nama Barang" dan "Tonase" (unduh template untuk contoh).');
   const H = Array.from(sh.rows[hi], c => tksNz(c).toLowerCase()), col = {};
   H.forEach((h, i) => {
-    const k = /^satuan\s*(tonase|berat)$/.test(h) ? 'satt' : /^(kib(\s*id)?|id\s*kib)$/.test(h) ? 'kib' : /^kode(\s*barang)?$/.test(h) ? 'kode' : /^nama(\s*barang)?$/.test(h) ? 'nama'
+    const k = /^satuan\s*(tonase|berat)$/.test(h) ? 'satt' : /^(kib(\s*id)?|id\s*kib)$/.test(h) ? 'kib' : /^kode(\s*barang)?$/.test(h) ? 'kode' : NAMA.test(h) ? 'nama'
+      : /^(no\.?\s*)?register$/.test(h) ? 'reg' : /^merk/.test(h) ? 'merk' : /^bahan$/.test(h) ? 'bahan'
       : /^tahun/.test(h) ? 'tahun' : /^kondisi/.test(h) ? 'kondisi' : /^(kuantitas|qty|jumlah)$/.test(h) ? 'qty' : /^satuan$/.test(h) ? 'sat' : /^(tonase|berat)/.test(h) ? 'tonase' : '';
     if (k && col[k] == null) col[k] = i;
   });
+  /* Tata letak "Rekap Tonase": kolom Satuan berada SETELAH Tonase dan berarti satuan tonase */
+  if (col.satt == null && col.sat != null && col.tonase != null && col.sat > col.tonase) { col.satt = col.sat; delete col.sat; }
   const miss = [col.nama == null && 'Nama Barang', col.tonase == null && 'Tonase'].filter(Boolean);
   if (miss.length) throw new Error('Kolom wajib tidak ditemukan: ' + miss.join(', ') + '.');
   const g = (r, k) => col[k] == null ? '' : tksNz(r[col[k]]);
-  let warn = 0; const rows = [];
+  const kon = v => /^rb$/i.test(v) ? 'Rusak Berat' : /^rs$/i.test(v) ? 'Rusak Sedang' : /^rr$/i.test(v) ? 'Rusak Ringan' : /^b$/i.test(v) ? 'Baik' : v;
+  let warn = 0; const rows = []; let prev = null;
   sh.rows.slice(hi + 1).forEach(r => {
-    if (!r || !g(r, 'nama')) return;
-    const raw = g(r, 'tonase'), n = tksNum(raw), sv = g(r, 'satt').toLowerCase();
+    if (!r) return;
+    const nama = g(r, 'nama'), raw = g(r, 'tonase'), n = tksNum(raw), bv = g(r, 'bahan'), sv = g(r, 'satt').toLowerCase();
+    let base;
+    if (nama) base = { kib: g(r, 'kib') || '-', kode: g(r, 'kode') || '-', nama, reg: g(r, 'reg'), merk: g(r, 'merk').replace(/[\s\/]+$/, ''), tahun: g(r, 'tahun') || '-', kondisi: kon(g(r, 'kondisi')) || '-', qty: g(r, 'qty') || '-', sat: g(r, 'sat') || '-' };
+    else if (prev && bv && !isNaN(n)) base = { ...prev, qty: '-', sat: '-', dup: true };   /* baris lanjutan: bahan lain pada barang yang sama */
+    else return;
+    if (nama && prev && base.kib !== '-' && base.kib === prev.kib && base.nama === prev.nama) base.dup = true;   /* KIB dan nama sama dengan baris sebelumnya = bahan tambahan */
+    if (nama) prev = base;
     if (raw && isNaN(n)) warn++;
-    let satt = 'Kg'; if (/^ton$/.test(sv)) satt = 'Ton'; else if (sv && !/^(kg|kilogram|kilo)$/.test(sv)) warn++;
-    rows.push({ kib: g(r, 'kib') || '-', kode: g(r, 'kode') || '-', nama: g(r, 'nama'), tahun: g(r, 'tahun') || '-', kondisi: g(r, 'kondisi') || '-', qty: g(r, 'qty') || '-', sat: g(r, 'sat') || '-', tonase: isNaN(n) ? '' : n, satt });
-  });
+    let satt = 'Kg'; if (/^ton$/.test(sv)) satt = 'Ton'; else if (/^unit$/.test(sv)) satt = 'Unit'; else if (sv && !/^(kg|kilogram|kilo)$/.test(sv)) warn++;
+    const bahan = bv; });
   if (!rows.length) throw new Error('Tidak ada baris barang yang dapat dibaca (kolom Nama Barang kosong).');
   const cut = rows.length > TKS_ROWS_MAX; if (cut) rows.length = TKS_ROWS_MAX;
   return { rows, warn, cut };
@@ -79,10 +93,10 @@ async function tksTemplate(no, type) {
   const L = i => String.fromCharCode(65 + i);
   const cell = (i, r, v) => (typeof v == 'number' && isFinite(v)) ? `<c r="${L(i)}${r}"><v>${v}</v></c>` : (v === '' || v == null) ? '' : `<c r="${L(i)}${r}" t="inlineStr"><is><t xml:space="preserve">${tksXml(v)}</t></is></c>`;
   const num = v => /^\d+(\.\d+)?$/.test(String(v)) ? Number(v) : v;
-  let rows = tksRows(no).map(r => [r.kib, r.kode, r.nama, num(r.tahun), r.kondisi, num(r.qty), r.sat, r.tonase === '' ? '' : Number(r.tonase), r.satt]);
-  if (!rows.length) rows = [['KIB-B-025', '1.3.02', 'Mesin / Peralatan', 2019, 'Rusak Berat', 2, 'Unit', 1.5, 'Ton']];
+  let rows = tksRows(no).map(r => [r.kib, r.kode, r.nama, r.reg || '', r.merk || '', r.bahan || '', num(r.tahun), r.kondisi, num(r.qty), r.sat, r.tonase === '' ? '' : Number(r.tonase), r.satt]);
+  if (!rows.length) rows = [['KIB-B-025', '1.3.02', 'Mesin / Peralatan', '', '', 'Besi', 2019, 'Rusak Berat', 2, 'Unit', 1.5, 'Ton']];
   const sheetRows = [TKS_COLS, ...rows].map((r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => cell(ci, ri + 1, v)).join('')}</row>`).join('');
-  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="2" width="14" customWidth="1"/><col min="3" max="3" width="30" customWidth="1"/><col min="4" max="9" width="14" customWidth="1"/></cols><sheetData>${sheetRows}</sheetData><dataValidations count="1"><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Satuan Tonase" error="Pilih Kg atau Ton." sqref="I2:I${TKS_ROWS_MAX + 1}"><formula1>"${TKS_SAT.join(',')}"</formula1></dataValidation></dataValidations></worksheet>`;
+  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="2" width="14" customWidth="1"/><col min="3" max="3" width="30" customWidth="1"/><col min="4" max="4" width="12" customWidth="1"/><col min="5" max="5" width="26" customWidth="1"/><col min="6" max="12" width="15" customWidth="1"/></cols><sheetData>${sheetRows}</sheetData><dataValidations count="1"><dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Satuan Tonase" error="Pilih Kg, Ton, atau Unit." sqref="L2:L${TKS_ROWS_MAX + 1}"><formula1>"${TKS_SAT.join(',')}"</formula1></dataValidation></dataValidations></worksheet>`;
   const z = new JSZip();
   z.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
   z.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
@@ -128,11 +142,10 @@ function tksDetail(s) {
     (doc && doc.files && doc.files[0] ? '<button type="button" class="btn o sm" data-tk="pv">Lihat</button>' : '') +
     (ro ? '' : `<label class="btn o sm" style="cursor:pointer">${doc ? 'Ganti' : 'Upload'}<input type="file" id="tk_doc" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/png,image/jpeg" hidden></label>${doc ? '<button type="button" class="btn o sm" data-tk="deldoc">Hapus</button>' : ''}`) + `</div></div>`;
   const imp = ro ? '' : `<div class="tks-seg" role="group" aria-label="Cara pengisian"><button type="button" data-tm="manual" class="${tksMode == 'manual' ? 'on' : ''}">Isi Manual</button><button type="button" data-tm="excel" class="${tksMode == 'excel' ? 'on' : ''}">Import Excel</button></div>` +
-    (tksMode == 'excel' ? `<div class="tks-imp"><div class="pt-bar" style="margin:0"><label class="btn sm" style="cursor:pointer">Pilih File Excel<input type="file" id="tk_xl" accept=".xlsx" hidden></label><button type="button" class="btn o sm" data-tk="tpl">Unduh Template Excel</button>${t && t.src == 'excel' ? '<button type="button" class="btn o sm" data-tk="reset">Kembalikan data permohonan</button>' : ''}</div><p class="mt" style="font-size:12px;margin:8px 0 0">Kolom: ${TKS_COLS.join(', ')} (Satuan Tonase: Kg atau Ton). Tabel di bawah akan diisi otomatis dari file${t && t.src == 'excel' && t.srcName ? '. Terakhir diimpor: <b>' + esc(t.srcName) + '</b>' : ''}.</p></div>` : '');
-  const tbl = rows.length ? `<div class="tw"><table class="kvt"><thead><tr><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th><th>Bahan</th><th>Tonase</th><th>Satuan Tonase</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td class="mono"><b>${esc(r.kib)}</b></td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.tahun)}</td><td>${esc(r.kondisi)}</td><td>${esc(r.qty)}</td><td>${esc(r.sat)}</td>` +
-    `<td><input class="tkn" type="text" style="width:150px" maxlength="80" data-tb="${i}" value="${esc(r.bahan)}" placeholder="Contoh: Besi" aria-label="Bahan ${esc(r.nama)}"${dis}></td>` +
+    (tksMode == 'excel' ? `<div class="tks-imp"><div class="pt-bar" style="margin:0"><label class="btn sm" style="cursor:pointer">Pilih File Excel<input type="file" id="tk_xl" accept=".xlsx" hidden></label><button type="button" class="btn o sm" data-tk="tpl">Unduh Template Excel</button>${t && t.src == 'excel' ? '<button type="button" class="btn o sm" data-tk="reset">Kembalikan data permohonan</button>' : ''}</div><p class="mt" style="font-size:12px;margin:8px 0 0">Kolom: ${TKS_COLS.join(', ')} (Satuan Tonase: Kg, Ton, atau Unit; Bahan: ${TKS_BAHAN.join(', ')}). Format "Rekap Tonase" juga dikenali, termasuk baris lanjutan untuk bahan lain pada barang yang sama. Tabel di bawah akan diisi otomatis dari file${t && t.src == 'excel' && t.srcName ? '. Terakhir diimpor: <b>' + esc(t.srcName) + '</b>' : ''}.</p></div>` : '');
+  const tbl = rows.length ? `<div class="tw"><table class="kvt"><thead><tr><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Bahan</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th><th>Tonase</th><th>Satuan Tonase</th>${ro ? '' : '<th></th>'}</tr></thead><tbody>${rows.map((r, i) => `<tr><td class="mono"><b>${esc(r.kib)}</b></td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b>${r.reg || r.merk ? `<small class="mt">${esc([r.reg ? 'Reg. ' + r.reg : '', r.merk].filter(Boolean).join(' · '))}</small>` : ''}${r.dup ? '<small class="mt">Bahan tambahan pada barang yang sama</small>' : ''}</td><td><input class="tkn" type="text" style="width:150px" maxlength="80" data-tb="${i}" value="${esc(r.bahan)}" placeholder="Contoh: Besi" aria-label="Bahan ${esc(r.nama)}"${dis}></td><td>${esc(r.tahun)}</td><td>${esc(r.kondisi)}</td><td>${esc(r.qty)}</td><td>${esc(r.sat)}</td>` +
     `<td><input class="tkn" type="number" min="0" step="any" inputmode="decimal" data-ti="${i}" value="${esc(r.tonase)}" placeholder="0" aria-label="Tonase ${esc(r.nama)}"${dis}></td>` +
-    `<td><select class="dsel" data-ts="${i}" aria-label="Satuan tonase ${esc(r.nama)}"${dis}>${TKS_SAT.map(o => `<option${o == r.satt ? ' selected' : ''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div><div class="kvs" id="tk_sum">${tksSumHtml(no)}</div>`
+    `<td><select class="dsel" data-ts="${i}" aria-label="Satuan tonase ${esc(r.nama)}"${dis}>${TKS_SAT.map(o => `<option${o == r.satt ? ' selected' : ''}>${o}</option>`).join('')}</select></td>${ro ? '' : `<td><div class="mtg">${r.dup ? `<button type="button" class="db" data-tdel="${i}">Hapus</button>` : ''}</div></td>`}</tr>`).join('')}</tbody></table></div><div class="kvs" id="tk_sum">${tksSumHtml(no)}</div>`
     : EM('Belum ada barang', ro ? 'Tidak ada data barang.' : 'Pilih "Import Excel" lalu unggah file untuk mengisi daftar barang.');
   s.innerHTML = HD('Permohonan Penaksiran', no + ' · ' + d[1], '<button class="btn o" data-a="bk">← Kembali</button>') +
     sec('Ringkasan Permohonan', ro ? 'Permohonan penaksiran sudah diajukan. Tampilan hanya untuk dilihat.' : '', st(d[6])) + `<dl><dt>Jenis</dt><dd>${esc(d[4])}</dd><dt>Tanggal Surat</dt><dd>${esc(d[5])}</dd><dt>Perangkat Daerah</dt><dd>${esc(d[1])}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd><dt>Persetujuan Kepala Daerah</dt><dd>${psjRef(no, true)}</dd><dt>Status Penaksiran</dt><dd>${PL(p[0], p[1])}</dd></dl>${t.verif.st == 'Ditolak' ? `<div class="al2 rjb" style="margin-top:14px"><b>Permohonan penaksiran ditolak Admin.</b> ${esc(t.verif.cat || 'Perbaiki dokumen atau data barang, lalu ajukan ulang.')}</div>` : ''}</div>` +
@@ -158,18 +171,26 @@ function tksDetail(s) {
         toast(res.rows.length + ' barang diimpor dari Excel.' + (res.warn ? ' ' + res.warn + ' isian tidak dikenali dan dikosongkan/diganti Kg.' : '') + (res.cut ? ' Dibatasi ' + TKS_ROWS_MAX + ' baris.' : '')); tksDetail(s);
       }).catch(err => { console.error(err); toast(err && err.message ? err.message : 'File Excel tidak dapat dibaca.'); });
     }
+    const sb = el.dataset && el.dataset.tb; if (sb != null) { const T = tksEnsure(no); T.rows[+sb].bahan = el.value; T.saved = false; tksSyncActions(s, no); return; }
     const si = el.dataset && el.dataset.ts; if (si != null) { const T = tksEnsure(no); T.rows[+si].satt = el.value; T.saved = false; const sm = $('#tk_sum'); if (sm) sm.innerHTML = tksSumHtml(no); tksSyncActions(s, no); }
   };
-  s.oninput = e => {
-    const el = e.target;
-    if (!ro && el.dataset && el.dataset.tb != null) { const T = tksEnsure(no); T.rows[+el.dataset.tb].bahan = el.value; T.saved = false; tksSyncActions(s, no); return; }
-    const i = el.dataset && el.dataset.ti; if (ro || i == null) return;
+   s.oninput = e => {
+    const sb = e.target.dataset && e.target.dataset.tb; if (!ro && sb != null) { const T = tksEnsure(no); T.rows[+sb].bahan = e.target.value; T.saved = false; tksSyncActions(s, no); return; }
+    const el = e.target, i = el.dataset && el.dataset.ti; if (ro || i == null) return;
     const T = tksEnsure(no); T.rows[+i].tonase = el.value; T.saved = false;
     const sm = $('#tk_sum'); if (sm) sm.innerHTML = tksSumHtml(no);
     tksSyncActions(s, no);
   };
+   
   s.onclick = e => {
     const tm = e.target.closest('[data-tm]'); if (tm && !ro) { tksMode = tm.dataset.tm; return tksDetail(s); }
+    const du = e.target.closest('[data-tdup]'), dd = e.target.closest('[data-tdel]');
+    if ((du || dd) && !ro) {
+      const T = tksEnsure(no);
+      if (du) { const i = +du.dataset.tdup, r0 = T.rows[i]; if (r0) T.rows.splice(i + 1, 0, { ...r0, qty: '-', sat: '-', bahan: '', tonase: '', satt: 'Kg', dup: true }); }
+      else { const i = +dd.dataset.tdel; if (T.rows[i] && T.rows[i].dup) T.rows.splice(i, 1); }
+      T.saved = false; Store.persist(); return tksDetail(s);
+    }
     const tk = e.target.closest('[data-tk]');
     if (tk) {
       const a = tk.dataset.tk;
@@ -188,6 +209,8 @@ function tksDetail(s) {
     const rr = T.rows, kosong = rr.filter(r => !(tksNum(r.tonase) > 0));
     if (!T.doc) return toast('Unggah Surat Tanggung Jawab Mutlak terlebih dahulu.');
     if (!rr.length) return toast('Belum ada barang. Import Excel untuk mengisi daftar barang.');
+    const tanpaBahan = rr.filter(r => !r.bahan);
+    if (tanpaBahan.length) return toast('Pilih bahan untuk: ' + tanpaBahan.slice(0, 3).map(r => r.nama).join(', ') + (tanpaBahan.length > 3 ? ' dan ' + (tanpaBahan.length - 3) + ' barang lain' : '') + '.');
     if (kosong.length) return toast('Isi tonase (lebih dari 0) untuk: ' + kosong.slice(0, 3).map(r => r.nama).join(', ') + (kosong.length > 3 ? ' dan ' + (kosong.length - 3) + ' barang lain' : '') + '.');
     cfm('Ajukan permohonan penaksiran?', 'Data akan dikunci dan tidak dapat diubah lagi.', () => {
       const U = tksX(no); if (!U || U.st == 'Diajukan' || !U.saved) return; U.st = 'Diajukan'; U.ts = nowStr();
@@ -240,7 +263,7 @@ function tksAdminDetail(s) {
   const qf = (k, title, sub) => `<button type="button" class="qc${fk == k ? ' on' : ''}" data-tkaf="${esc(k)}" aria-pressed="${fk == k}"><b>${esc(title)}</b><small>${sub}</small></button>`;
   const qb = (v, title, sub) => `<button type="button" class="qc${allV(v) ? ' on' : ''}" data-tkab="${v}" aria-pressed="${allV(v)}"${filtered.length ? '' : ' disabled'}><b>${title}</b><small>${sub}</small></button>`;
   const diperiksa = rows.filter((r, i) => V.check[i]).length;
-  const table = rows.length ? `<div class="qk"><div class="qg"><span>Filter kondisi barang</span><div>${qf('', 'Semua', rows.length + ' barang')}${kinds.map(k => qf(k, k, cnt(k) + ' barang')).join('')}</div></div>${ro ? '' : `<div class="qg"><span>Isi cepat kesesuaian${fk ? ' (barang yang tampil)' : ''}</span><div>${qb('ok', 'Semua Sesuai', 'Sesuai data KIB')}${qb('no', 'Semua Tidak Sesuai', 'Tidak sesuai data KIB')}</div></div>`}${fk ? '<button type="button" class="btn o sm" data-tkaf-reset>Hapus Filter</button>' : ''}</div><div class="tw"><table class="kvt"><thead><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Tahun</th><th>Qty</th><th>Bahan</th><th>Tonase</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr></thead><tbody>${filtered.length ? '' : '<tr><td colspan="11" class="mt" style="text-align:center;padding:26px">Tidak ada barang dengan kondisi ini. Klik “Semua” untuk menampilkan seluruh barang.</td></tr>'}${filtered.map(({ r, i }, k) => `<tr><td>${k + 1}</td><td class="mono">${esc(r.kib)}</td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.tahun)}</td><td>${esc(r.qty)} ${esc(r.sat)}</td><td>${esc(r.bahan) || '-'}</td><td>${esc(r.tonase)} ${esc(r.satt)}</td><td>${esc(r.kondisi)}</td><td>${select(V.check[i], 'row', i, ro)}</td><td>${V.check[i] == 'no' && !ro ? `<textarea data-tka-note="row" data-ti="${i}" rows="2" placeholder="Keterangan (wajib)">${esc(V.notes[i] || '')}</textarea>` : V.check[i] == 'no' ? esc(V.notes[i] || '-') : '-'}</td></tr>`).join('')}</tbody></table></div>` : EM('Belum ada barang', 'Permohonan tidak memiliki rincian barang tonase.');
+  const table = rows.length ? `<div class="qk"><div class="qg"><span>Filter kondisi barang</span><div>${qf('', 'Semua', rows.length + ' barang')}${kinds.map(k => qf(k, k, cnt(k) + ' barang')).join('')}</div></div>${ro ? '' : `<div class="qg"><span>Isi cepat kesesuaian${fk ? ' (barang yang tampil)' : ''}</span><div>${qb('ok', 'Semua Sesuai', 'Sesuai data KIB')}${qb('no', 'Semua Tidak Sesuai', 'Tidak sesuai data KIB')}</div></div>`}${fk ? '<button type="button" class="btn o sm" data-tkaf-reset>Hapus Filter</button>' : ''}</div><div class="tw"><table class="kvt"><thead><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Bahan</th><th>Tahun</th><th>Qty</th><th>Tonase</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr></thead><tbody>${filtered.length ? '' : '<tr><td colspan="11" class="mt" style="text-align:center;padding:26px">Tidak ada barang dengan kondisi ini. Klik “Semua” untuk menampilkan seluruh barang.</td></tr>'}${filtered.map(({ r, i }, k) => `<tr><td>${k + 1}</td><td class="mono">${esc(r.kib)}</td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b>${r.reg || r.merk ? `<small class="mt">${esc([r.reg ? 'Reg. ' + r.reg : '', r.merk].filter(Boolean).join(' · '))}</small>` : ''}</td><td>${esc(r.bahan || '-')}</td><td>${esc(r.tahun)}</td><td>${esc(r.qty)} ${esc(r.sat)}</td><td>${esc(r.tonase)} ${esc(r.satt)}</td><td>${esc(r.kondisi)}</td><td>${select(V.check[i], 'row', i, ro)}</td><td>${V.check[i] == 'no' && !ro ? `<textarea data-tka-note="row" data-ti="${i}" rows="2" placeholder="Keterangan (wajib)">${esc(V.notes[i] || '')}</textarea>` : V.check[i] == 'no' ? esc(V.notes[i] || '-') : '-'}</td></tr>`).join('')}</tbody></table></div>` : EM('Belum ada barang', 'Permohonan tidak memiliki rincian barang tonase.');
   s.innerHTML = HD('Verifikasi Permohonan Penaksiran', `${esc(no)} · ${esc(d[1])}`, '<button class="btn o" data-tka-back>← Kembali</button>') +
     sec('Ringkasan Permohonan', ro ? 'Hasil verifikasi hanya dapat dilihat.' : 'Periksa dokumen dan kesesuaian data tonase.', PL(ro ? V.st == 'Disetujui' ? 's-g' : 's-r' : V.draft ? 's-b' : 's-o', ro ? V.st : V.draft ? 'Draft Verifikasi' : 'Menunggu Verifikasi')) +
     `<dl><dt>Jenis</dt><dd>${esc(d[4])}</dd><dt>Tanggal Surat</dt><dd>${esc(d[5])}</dd><dt>Perangkat Daerah</dt><dd>${esc(d[1])}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd><dt>Status Permohonan Penaksiran</dt><dd>${PL(tksStat(no)[0], tksStat(no)[1])}</dd></dl>${ro && reason ? `<div class="al2 rjb" style="margin-top:14px"><b>Catatan Admin:</b> ${esc(reason)}</div>` : ''}</div>` +
