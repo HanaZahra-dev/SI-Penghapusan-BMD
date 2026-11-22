@@ -92,8 +92,8 @@ dl{display:grid;grid-template-columns:150px 1fr;gap:9px 14px;margin:0}dt{color:v
 
 #app{--bl:#1d4e89;--bl2:#163f70;--pale:#e4eef9;--ln:#e1e9f4;--teal:#17a39f}
 body.in{background:#eff5fb}
-#app .side{width:244px;background:linear-gradient(180deg,#0f5d74 0%,#0b3c68 52%,#0a2c52 100%);overflow:hidden;transition:transform .25s}
-#app .main{margin-left:244px;transition:margin .25s}
+#app .side{width:295px;background:linear-gradient(180deg,#0f5d74 0%,#0b3c68 52%,#0a2c52 100%);overflow:hidden;transition:transform .25s}
+#app .main{margin-left:295px;transition:margin .25s}
 #app .side .lg{padding:22px 18px 14px;font-size:15px}#app .side .lg i{background:linear-gradient(135deg,#27c0b8,#1b7fd0);color:#fff}
 #app .side nav{padding:0 12px}.grp{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7fb4cc;padding:16px 10px 6px;font-weight:700}
 #app .nav{font-weight:500;padding:10px 12px;font-size:13.5px}#app .nav.on{background:var(--teal);color:#fff;font-weight:700;box-shadow:0 8px 16px -10px #000a}
@@ -162,7 +162,7 @@ body.sbc #app .side{transform:translateX(-100%)}body.sbc #app .main{margin-left:
 @media(max-width:1000px){#login{grid-template-columns:1fr;padding:0 20px 40px}.scene{opacity:.35;left:30%;width:70%}.lx{padding-bottom:20px}.fe4{grid-template-columns:1fr 1fr}.pin,.wave{display:none}.lcard{padding:32px 24px}}
 /* app */
 #app{--bl:#1f5fd0;--bl2:#184bb0;--pale:#e8f0ff;--ln:#e3eaf6;--teal:#2b7be8}body.in{background:linear-gradient(180deg,#f3f8ff,#f3f7fd)}
-#app .side{width:244px;background:linear-gradient(180deg,#0d3170 0%,#0a2557 55%,#081d45 100%)}
+#app .side{width:295px;background:linear-gradient(180deg,#0d3170 0%,#0a2557 55%,#081d45 100%)}
 #app .side .lg{padding:22px 18px 16px;font-size:17px;gap:12px}#app .side .lg small{font-size:13px;font-weight:500;color:#b9cbef}
 #app .side .lg i{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#3b8cf5,#1c52c8);color:#fff;box-shadow:0 8px 18px -8px #000a}
 #app .grp{color:#8fb0e6;letter-spacing:.12em}#app .nav{border-radius:10px;font-weight:500;color:#d4e0fa}
@@ -921,3 +921,135 @@ html[data-theme="dark"] .kvt input.tkn{background:var(--input);color:var(--ink)}
 /* Aksi metode penilaian per objek (Daftar Objek Penaksiran) */
 .mtg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .db.on{background:var(--bl);border-color:var(--bl);color:#fff}
+
+/* Kertas Kerja Pasar sesuai KKAP (per material) */
+.kkt td,.kkt th{vertical-align:top}.kkt td small{display:block;color:var(--mt);font-size:11.5px;margin-top:3px;font-weight:500}
+.kkt tr.kkh td{background:var(--pale,#eef4ff);color:var(--bl);font-size:12px;letter-spacing:.2px;padding:8px 12px}
+.kkt input.kkp{width:78px;border:1px solid var(--ln);border-radius:8px;padding:6px 8px;font:600 13px var(--sans);text-align:right;background:#fff;color:var(--ink)}
+.kkt select.kkpb{max-width:230px;width:100%;border:1px solid var(--ln);border-radius:8px;padding:7px 8px;font:500 12.5px var(--sans);background:#fff;color:var(--ink)}
+.kkr{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:14px}
+.kkr>div{border:1px solid var(--ln);border-radius:12px;padding:10px 14px;background:#fff}.kkr small{display:block;color:var(--mt);font-size:12px}.kkr b{font-size:16px}
+.kkr .kkh2{background:var(--pale,#eef4ff);border-color:var(--bl)}.kkr .kkh2 b{color:var(--bl);font-size:18px}
+html[data-theme="dark"] .kkt input.kkp,html[data-theme="dark"] .kkt select.kkpb,html[data-theme="dark"] .kkr>div{background:var(--input);color:var(--ink)}
+
+/* Kertas Kerja Pasar: tata letak ringkas (header tabel menempel, bagian dapat dilipat, ringkasan hasil menempel) */
+.kkm2{padding:0;overflow:visible}
+.kkmh{display:flex;align-items:center;gap:12px;width:100%;padding:14px 18px;background:none;border:0;cursor:pointer;text-align:left;font:inherit;color:var(--ink);border-radius:14px}
+.kkmh:hover{background:var(--pale,#eef4ff)}
+.kkmt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}.kkmt b{font-size:15px}.kkmt small{color:var(--mt);font-size:12px}
+.kkms{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end;font-size:12.5px;color:var(--mt)}.kkms b{color:var(--ink)}
+.kkch{display:inline-block;font-style:normal;transition:transform .15s;color:var(--mt);width:14px;flex:none}
+.kkm2.shut>.kkmh .kkch,.kkt.shut .kkfb .kkch{transform:rotate(-90deg)}
+.kkbody{padding:0 18px 18px}.kkm2.shut .kkbody{display:none}
+.kkw{overflow:visible}
+.kkt{min-width:0}
+#app .kkt thead th{position:sticky;top:65px;z-index:3;background:var(--card,#fff);border-bottom:1px solid var(--ln);padding:8px 10px;vertical-align:bottom}
+.kkt thead th b{display:block;color:var(--ink);font-size:13px}.kkt thead th small{display:block;color:var(--mt);font-weight:500;margin-top:2px}
+.kkt td{padding:6px 10px}.kkt td small{margin-top:1px}
+.kkt input.kkp{width:64px;padding:4px 6px}
+.kkt input.kkp.on{background:#fff7e0;border-color:#e0b33a}
+.kkt tr.kkg td{background:none;padding:12px 10px 4px;border-bottom:1px solid var(--ln);color:var(--bl);font-size:12px;font-weight:700;letter-spacing:.2px}
+.kkt tr.kkg td em{font-style:normal;font-weight:500;color:var(--mt);margin-left:8px}
+.kkt tr.kkgt td{padding:0}
+.kkfb{display:flex;align-items:center;gap:8px;width:100%;padding:12px 10px 4px;background:none;border:0;cursor:pointer;font:inherit;color:var(--bl);font-size:12px;font-weight:700;text-align:left}
+.kkfb em{font-style:normal;font-weight:500;color:var(--mt)}
+.kkt.shut .kk2{display:none}
+.kkt tr.kks td{font-weight:600;border-top:1px dashed var(--ln)}
+.kkr{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;position:sticky;bottom:0;z-index:4;margin:14px 0 0;padding:8px;background:var(--card,#fff);border:1px solid var(--ln);border-radius:12px;box-shadow:0 -6px 16px -10px #10224a66}
+.kkr>div{flex:1 1 150px;padding:6px 12px;border:0;background:transparent}
+.kkr>i{align-self:center;font-style:normal;color:var(--mt)}
+.kkr .kkh2{border:1px solid var(--bl);border-radius:10px;background:var(--pale,#eef4ff)}
+@media(max-width:900px){.kkw{overflow-x:auto}.kkt{min-width:640px}#app .kkt thead th{position:static}.kkr>i{display:none}}
+html[data-theme="dark"] .kkt input.kkp.on{background:#3a3114;border-color:#b88f1c;color:var(--ink)}
+html[data-theme="dark"] .kkr>div{background:transparent}
+html[data-theme="dark"] .kkr .kkh2{background:var(--pale)}
+
+/* Kertas Kerja Pasar: gaya bagian bernomor (1-5) */
+.kzm{margin-bottom:4px}
+.kzs{border:1px solid var(--ln);border-radius:14px;background:var(--card,#fff);margin-bottom:14px}
+.kzh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;background:var(--pale,#eef4ff);border-bottom:1px solid var(--ln);border-radius:13px 13px 0 0}
+.kzh b{font-size:15px;color:var(--ink)}.kzh small{color:var(--mt);font-size:12.5px}.kzh .kzr{margin-left:auto}
+.kzn{font-style:normal;font-size:15px;font-weight:700;color:var(--ink);flex:none;margin-right:-6px}.kzn::after{content:"."}
+.kzb{padding:14px 16px}
+.kzi{width:22px;height:22px}
+.kz1{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.kzc{display:flex;align-items:center;gap:12px;padding:4px 18px;border-left:1px solid var(--ln)}.kzc:first-child{border-left:0;padding-left:0}
+.kzt{width:46px;height:46px;border-radius:12px;background:var(--pale,#eef4ff);color:var(--bl);display:grid;place-items:center;flex:none}
+.kzc small{display:block;color:var(--mt);font-size:12.5px}.kzc b{font-size:18px;color:var(--ink)}.kzc b.bl{color:var(--bl)}
+.kz2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.kzp{padding:4px 16px;border-left:1px solid var(--ln);display:flex;flex-direction:column;gap:8px;min-width:0}.kzp:first-child{border-left:0;padding-left:0}
+.kzpt{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kzchip{background:var(--pale,#eef4ff);color:var(--bl);font-weight:600;font-size:12.5px;padding:3px 10px;border-radius:8px;white-space:nowrap}
+.kzpi{font-size:12px;color:var(--mt);display:flex;flex-direction:column;gap:2px}
+.kz4{display:grid;grid-template-columns:1.15fr 1fr}
+.kz4>div{padding:0 18px}.kz4>div:first-child{padding-left:0;border-right:1px solid var(--ln)}
+.kz4 h3{margin:0 0 10px;font-size:14px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.kztiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kztile{background:var(--pale,#eef4ff);border-radius:12px;padding:12px 8px;text-align:center}.kztile small{display:block;color:var(--mt);font-size:12px}.kztile b{display:block;color:var(--bl);font-size:17px;margin:2px 0}
+.kzw{display:flex;flex-direction:column;gap:6px}.kzw div{display:flex;justify-content:space-between;align-items:center;background:var(--pale,#eef4ff);border-radius:8px;padding:8px 12px;font-size:13.5px}
+.kzs .kkr{position:static;box-shadow:none;border:0;padding:0;background:none;margin:16px 0 0}
+.kzs .kkr>div{background:var(--pale,#eef4ff);border-radius:10px}
+.kzs .kkr .kkh2{border:1px solid var(--bl)}
+.kzs .kkw{margin:-14px -16px -14px}
+.kzs .kkt td:first-child,.kzs .kkt th:first-child{padding-left:16px}
+#app .kkt thead th{background:var(--pale,#eef4ff)}
+.kkt td>b{display:block}
+.kzf{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 20px;background:var(--pale,#eef4ff);border:1px solid var(--ln);border-radius:14px;margin:4px 0 20px}
+.kzck{width:30px;height:30px;border-radius:50%;background:var(--bl);color:#fff;display:grid;place-items:center;flex:none}.kzck .kzi{width:15px;height:15px}
+.kzf small{display:block;color:var(--mt)}.kzf b{font-size:26px;color:var(--bl)}
+.kzf p{margin:0;color:var(--mt);padding-left:18px;border-left:1px solid var(--ln);flex:1}
+.kzf .btn,.kzf .stt{margin-left:auto}
+@media(max-width:900px){.kz1,.kz2,.kz4{grid-template-columns:1fr}.kzc,.kzp{border-left:0;padding:10px 0;border-top:1px solid var(--ln)}.kzc:first-child,.kzp:first-child{border-top:0}.kz4>div{padding:0 0 14px;border-right:0!important}.kzf p{border-left:0;padding-left:0}}
+
+.kzs .kkr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kzs .kkr>i{display:none}
+@media(max-width:900px){.kzs .kkr{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Tabel penyesuaian: warna baris selang-seling */
+.kkt tbody tr:nth-child(odd):not(.kkg):not(.kks) td{background:color-mix(in srgb,var(--pale,#e8f0ff) 60%,transparent)}
+
+/* Objek Penaksiran: baris selang-seling + subtotal berlatar biru pucat */
+.kzs .tw{margin:-14px -16px -14px}
+.kzs .tw td,.kzs .tw th{padding-top:10px;padding-bottom:10px}
+.kzs .tw td:first-child,.kzs .tw th:first-child{padding-left:16px}
+.kzs .tw td:last-child,.kzs .tw th:last-child{padding-right:16px}
+.kzs .tw tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--pale,#e8f0ff) 60%,transparent)}
+.kzs .tw tbody tr:last-child td{background:var(--pale,#e8f0ff);border-bottom:0;font-weight:700}
+.kzs .tw tbody tr:last-child td:first-child{border-bottom-left-radius:13px}
+.kzs .tw tbody tr:last-child td:last-child{border-bottom-right-radius:13px}
+
+/* Kertas kerja: palet netral, biru hanya untuk hasil & aksi */
+html:not([data-theme="dark"]) :is(.kzm,.kzf){--pale:#f4f5f7;--ln:#e4e6eb;--mt:#646b78}
+.kzs td,.kzs th{border-bottom-color:#eceef2}
+/* pita judul bagian: tanpa latar, cukup garis */
+.kzh{background:none;border-radius:0;padding:12px 0 10px;margin:0 16px}
+/* kotak & baris: putih bergaris tipis, bukan blok berwarna */
+.kztile{background:var(--card,#fff);border:1px solid var(--ln)}
+.kzw div{background:none;border-radius:0;padding:9px 0;border-bottom:1px solid var(--ln)}
+.kzw{gap:0}
+.kzchip{background:none;border:1px solid var(--ln);color:var(--ink)}
+.kzs .kkr>div{background:var(--card,#fff);border:1px solid var(--ln)}
+.kzs .kkr .kkh2{border:2px solid var(--bl)}
+.kzs .kkr .kkh2 b{color:var(--bl)}
+/* bilah total */
+.kzf{background:var(--card,#fff);border:1px solid var(--ln);border-top:2px solid var(--bl)}
+.kzf p{color:var(--mt)}
+
+/* Pembulatan & bilah total: tanpa kotak, tanpa ikon, tanpa garis biru */
+.kzs .kkr>div{background:none;border:0;border-left:1px solid var(--ln);border-radius:0;padding:4px 16px}
+.kzs .kkr>div:first-child{border-left:0;padding-left:0}
+.kzs .kkr .kkh2{background:none;border:0;border-left:1px solid var(--ln);border-radius:0}
+.kzs .kkr .kkh2 b{font-size:22px;color:var(--bl)}
+.kzf{border:1px solid var(--ln);border-top:1px solid var(--ln)}
+.kzf b{color:var(--ink)}
+
+/* Penyesuaian 2: tombol lipat dengan kata kerja yang jelas */
+.kkfb{padding:12px 16px 10px;border-radius:4px}
+.kkfb .kkch{order:3;width:auto;font-size:15px;color:var(--bl);margin-left:2px}
+.kkfx{order:2;margin-left:auto;color:var(--bl);font-weight:600;font-size:12.5px}
+.kkfx::before{content:"Sembunyikan"}
+.kkt.shut .kkfx::before{content:"Tampilkan"}
+.kkt.shut .kkfb .kkch{transform:none}
+.kkt:not(.shut) .kkfb .kkch{transform:rotate(180deg)}
+.kkfb:hover .kkfx{text-decoration:underline}
+.kkfb:focus-visible{outline:2px solid var(--bl);outline-offset:-2px}
