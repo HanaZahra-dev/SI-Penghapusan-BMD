@@ -2,11 +2,11 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const st=x=>`<span class="stt ${x}">${x}</span>`;
 const NM=['Dinas Pendidikan','Dinas Kesehatan','Dinas PUPR','Dinas Perhubungan','Dinas Lingkungan Hidup','Bapenda','Dinas Sosial','Satpol PP'];
 
-const R=[];   /* Data awal hanya 3 permohonan contoh (satu per OPD), dibuat di bawah. */
+const R=[];  
 const EY='<svg class="i" style="width:16px;height:16px"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',ED='<svg class="i" style="width:16px;height:16px"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 let pg=1,fs='',editNo=null,detCur=null;
 const vis=()=>R.filter(own),deny=()=>toast('Anda tidak memiliki hak untuk tindakan ini.');
-/* RX buat aksi */
+
 var RX={};
 const hs=(no,a,n)=>{const x=RX[no]=RX[no]||{h:[]};x.h=x.h||[];x.h.push({t:new Date().toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),a:a,n:n||''})};
 
@@ -14,7 +14,6 @@ const EDIT_OK={'Draft':1,'Ditolak':1};
 function acts(d,i){const s=d[6],ed=EDIT_OK[s],w=bolehTulis(d);
  return `<button class="ib" data-r="${i}" aria-label="Lihat detail" title="Lihat">${EY}</button>${w?`<button class="ib" aria-label="Ubah" ${ed?`data-ed="${i}" title="${s=='Ditolak'?'Perbaiki':'Edit'}"`:'disabled title="Tidak dapat diedit: permohonan sudah diajukan" style="opacity:.35;cursor:not-allowed"'}>${ED}</button>${ed?(s=='Ditolak'?`<button class="btn sm vf" data-ed="${i}">Perbaiki &amp; Ajukan Ulang</button>`:`<button class="btn sm vf" data-vf="${i}">Ajukan Verifikasi</button>`):s=='Menunggu Verifikasi'?`<button class="btn o sm vf" data-wd="${i}">Tarik Kembali</button>`:s=='Disetujui'&&psjOk(d[0])?`<button class="btn sm vf" data-pnk="${i}">Lanjut ke Penaksiran</button>`:''}`:''}<button class="ib" data-mn="${i}" aria-label="Lainnya" title="Lainnya">&#8942;</button>`}
 const DOCN=['Permohonan Pemindahtanganan / Izin Bongkar','Surat Kajian / BA Penelitian','Surat Perintah','Surat Pernyataan'];
-/* Preview Dokumen/Berks(PDF) */
 function samplePdf(judul,sub){const e=t=>String(t).replace(/[^\x20-\x7e]/g,'?').replace(/[\\()]/g,'\\$&'),
  tx=`BT /F1 20 Tf 60 760 Td (${e(judul)}) Tj 0 -28 Td /F1 12 Tf (${e(sub)})  Tj 0 -22 Td (Dokumen contoh untuk demo - bukan berkas asli.) Tj ET`,
  o=['<</Type/Catalog/Pages 2 0 R>>','<</Type/Pages/Kids[3 0 R]/Count 1>>','<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>',`<</Length ${tx.length}>>\nstream\n${tx}\nendstream`,'<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>'];
@@ -22,12 +21,10 @@ function samplePdf(judul,sub){const e=t=>String(t).replace(/[^\x20-\x7e]/g,'?').
  const x=p.length;p+=`xref\n0 ${o.length+1}\n0000000000 65535 f \n`+off.map(n=>String(n).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size ${o.length+1}/Root 1 0 R>>\nstartxref\n${x}\n%%EOF`;
  const b=new Blob([p],{type:'application/pdf'});b._seed=[judul,sub];return b}
 (function(){const D4=['surat-permohonan.pdf','surat-kajian.pdf','surat-perintah.pdf','surat-pernyataan.pdf'],fmt=s=>new Date(s).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
- /* kk = ringkasan barang pada daftar KIB (indeks sama dengan K di bawah): [kode, nama, tahun, kondisi] */
- const mk=(no,pd,stt,iso,pf,docs,kib,cat,hist)=>{const kk=[['1.3.01','Kendaraan Dinas',2018,'Rusak Berat'],['1.3.02','Mesin / Peralatan',2019,'Rusak Berat'],['1.3.03','Peralatan Kantor',2017,'Rusak Sedang'],['1.3.04','Material Bongkaran',2016,'Rusak Berat'],['1.3.05','Gedung Gudang Peralatan',1998,'Rusak Berat']],a=kk[kib[0]];
+  const mk=(no,pd,stt,iso,pf,docs,kib,cat,hist)=>{const kk=[['1.3.01','Kendaraan Dinas',2018,'Rusak Berat'],['1.3.02','Mesin / Peralatan',2019,'Rusak Berat'],['1.3.03','Peralatan Kantor',2017,'Rusak Sedang'],['1.3.04','Material Bongkaran',2016,'Rusak Berat'],['1.3.05','Gedung Gudang Peralatan',1998,'Rusak Berat']],a=kk[kib[0]];
   R.unshift([no,pd,a[1]+(kib.length>1?' +'+(kib.length-1)+' lainnya':''),a[0],'Izin Bongkar',fmt(iso),stt,a[2],'-',a[3],pf,docs.filter(Boolean).length+' file','B']);
   RX[no]={h:[],cat:cat||'',chk:[],f:{jn:'Izin Bongkar',no:no,tgl:iso,pd:pd,pf:pf,docs:docs,files:docs.map((n,i)=>n?samplePdf(DOCN[i],no+' - '+pd):null),kib:kib}};hist.forEach(x=>hs(no,x[0],x[1]))};
- /* Satu permohonan contoh per Perangkat Daerah (cocok dengan akun Pengguna Barang masing-masing). Dipanggil dari belakang karena mk() memakai unshift: PM-001 tampil paling atas. */
- mk('PM-003-2026','Dinas PUPR','Menunggu Verifikasi','2026-10-14','Penghapusan material bongkaran dan gudang peralatan rusak berat',D4,[3,4],'',[['Draft dibuat','Pengguna Barang PUPR'],['Diajukan untuk verifikasi Admin','Pengguna Barang PUPR']]);
+  mk('PM-003-2026','Dinas PUPR','Menunggu Verifikasi','2026-10-14','Penghapusan material bongkaran dan gudang peralatan rusak berat',D4,[3,4],'',[['Draft dibuat','Pengguna Barang PUPR'],['Diajukan untuk verifikasi Admin','Pengguna Barang PUPR']]);
  mk('PM-002-2026','Dinas Sosial','Menunggu Verifikasi','2026-10-13','Penghapusan kendaraan dinas rusak berat',D4,[0],'',[['Draft dibuat','Pengguna Barang Dinsos'],['Diajukan untuk verifikasi Admin','Pengguna Barang Dinsos']]);
  mk('PM-001-2026','Dinas Kesehatan','Menunggu Verifikasi','2026-10-12','Penghapusan mesin dan peralatan rusak berat puskesmas',D4,[1],'',[['Draft dibuat','Pengguna Barang Dinkes'],['Diajukan untuk verifikasi Admin','Pengguna Barang Dinkes']])})();
 function tlHtml(d){const x=RX[d[0]];if(!x||!x.h||!x.h.length)return `<ul class="tl"><li><b>Pengajuan dibuat</b><small>${d[5]} · ${d[1]}</small></li><li><b>Verifikasi dokumen</b><small>Admin</small></li><li><b>Status saat ini: ${d[6]}</b><small>Menunggu tindak lanjut</small></li></ul>`;
@@ -54,10 +51,8 @@ function sum(){const idn=!!($('#fn').value.trim()&&$('#fp2').value.trim()&&$('#f
  $('#dct').textContent=dc+'/4 Lengkap';$('#kct').textContent=kc+' barang dipilih';$('#sdt').textContent=`Dokumen persyaratan (${dc}/4)`;$('#skt').textContent=`Barang KIB (${kc} dipilih)`;
  [['#si',idn],['#sd',dc==4],['#sk2',kc>0]].forEach(([e,v])=>$(e).classList.toggle('y',v));
  const n=(idn?1:0)+(dc==4?1:0)+(kc?1:0);$('#pbf').style.width=(n/3*100)+'%';
- /* Logic untuk harus menyimpan permohonan terlebih dahulu, baru boleh ajukan */
  $('#sx').textContent=n<3?'Dokumen, dan barang KIB harus sudah lengkap.':editNo?'Draft tersimpan dan lengkap. Siap diajukan.':'Data lengkap. Simpan sebagai draft terlebih dahulu, setelah itu baru dapat diajukan.';$('#aj').disabled=n<3||!editNo;$('#aj').title=!editNo?'Simpan sebagai draft terlebih dahulu':'';try{ttdRender()}catch(er){}
- /* Stepper/Alur (kyk Flowchart gitu) isinya 5 langkah */
- const stp=$$('#fsw .s'),ds=[idn,dc==4,kc>0,!!editNo,false];
+  const stp=$$('#fsw .s'),ds=[idn,dc==4,kc>0,!!editNo,false];
  ds.forEach((v,i)=>{stp[i].classList.toggle('done',v);stp[i].querySelector('i').innerHTML=v?'&#10003;':i+1});
  const f=ds.indexOf(false);stp.forEach((x,i)=>x.classList.toggle('on',i==f))
 }
@@ -90,7 +85,6 @@ function detail(i,src,tab){tab=tab||0;const d=(src||R)[i];if(!own(d))return deny
  $$('#det [data-t]').forEach(b=>b.onclick=()=>{detCur.tab=+b.dataset.t;$$('#det [data-t]').forEach(x=>x.classList.toggle('on',x==b));$('#tp').innerHTML=P[+b.dataset.t]});show('det')}
 $('#lv').onclick=()=>{const p=$('#lp'),h=p.type=='password';p.type=h?'text':'password';$('#lv').classList.toggle('on',h)};
 $('#sso').onclick=()=>{$('#le').textContent='Login SSO belum diaktifkan pada versi demo.'};
-/*  Login, peran, dan sesi  */
 $('#lf').addEventListener('submit',e=>{e.preventDefault();const u=$('#lu').value.trim(),w=$('#lp').value;
  if(!u||!w){$('#le').textContent=!u?'Isi email.':'Isi kata sandi.';return}
  const r=authenticate(u,w);
@@ -99,13 +93,11 @@ $('#lf').addEventListener('submit',e=>{e.preventDefault();const u=$('#lu').value
  setTimeout(()=>{bt.disabled=false;bt.textContent='Masuk';$('#lp').value='';$('#lu').value='';masuk(r.account,$('#lrem').checked)},700)});
 $('#lu').addEventListener('input',()=>$('#le').textContent='');
 if(TAMPIL_AKUN_DEMO){$('#demo div').innerHTML=ACCOUNTS.map(a=>`<button data-demo="${a.email}" type="button">${a.tag}</button>`).join('');$('#demo').hidden=false;$('#demo').addEventListener('click',e=>{const b=e.target.closest('[data-demo]');if(b){$('#lu').value=b.dataset.demo;$('#le').textContent='';$('#lp').focus()}})}
-/* Sidebar mengikuti Roles (admin, pengguna barang) */
 function terapkanMenu(){let g=null,n=0;
  [...$('#side nav').children].forEach(el=>{
   if(el.classList.contains('grp')){if(g)g.hidden=!n;g=el;n=0}
   else if(el.classList.contains('nav')){const ok=canView(el.dataset.v);el.hidden=!ok;if(ok&&g)n++}});
  if(g)g.hidden=!n}
-/* Logic untuk menggabungkan laman permohonan ke dashboard (jadi gaada laman permohonan di admin) */
 function tataDaftar(){const pb=!canView('list'),kartu=$('#q2').closest('.cd'),kosong=$('#em'),tujuan=pb?$('#dashList'):$('#list');
  if(kartu.parentNode!==tujuan){tujuan.appendChild(kartu);tujuan.appendChild(kosong)}
  $('#dRecent').style.display=pb?'none':'';$('#dash .s4').style.display=pb?'none':''}
@@ -144,7 +136,6 @@ $('#mk').onclick=()=>{menu(false);toast('Ganti kata sandi belum tersedia.')};
 $('#lo').onclick=()=>{menu(false);keluar()};
 if(TAMPIL_AKUN_DEMO)$('#mrs').hidden=false;
 $('#mrs').onclick=()=>{menu(false);cfm('Reset data?','Semua permohonan, riwayat, dan berkas kembali ke data awal di semua tab yang terbuka. Anda tetap login.',()=>Store.clear().then(()=>location.reload()),'Reset')};
-/* Modul 1 (Permohonan, Survei lapangan, Penelitian tim penghapusan, persetujuan kepala daerah, permohonan penaksiran )*/
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),RP=n=>'Rp '+Math.round(n).toLocaleString('id-ID'),fd=s=>s?new Date(s).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):'-',today=()=>new Date().toISOString().slice(0,10);
 const HD=(t,s,b)=>`<div class="bn"><div class="bi"><svg class="i"><use href="#f"/></svg></div><div><h1>${t}</h1><p>${s}</p></div>${b?`<div style="margin-left:auto;display:flex;gap:8px">${b}</div>`:''}</div>`;
 const ALR=(h,t)=>`<div class="al2"><b>${h}</b> ${t}</div>`;
@@ -160,11 +151,9 @@ function pgSv(){const s=$('#sv');if(svCur)return svForm(s);const r=svRows();
  s.innerHTML=HD('Survei Lapangan','')+AL_SV
  +sec('Permohonan Siap Survei','Permohonan dalam status berproses',`<span class="stt s-b">${r.length} Permohonan</span>`)+(r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Jenis Permohonan</th><th>KIB</th><th>Status Survei</th><th>Aksi</th></tr></thead><tbody>${r.map((d,i)=>`<tr><td>${i+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${d[12]}</td><td>${PL(stSv[SVS[d[0]].st],SVS[d[0]].st)}</td><td><button class="btn sm" data-sv="${d[0]}">${SVS[d[0]].st=='Selesai'?'Lihat':SVS[d[0]].st=='Draft'?'Lanjutkan':'Survei'}</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada permohonan siap survei','Permohonan muncul setelah berstatus Dalam Proses.'))+'</div>';
  s.onclick=e=>{const b=e.target.closest('[data-sv]');if(b){svCur=b.dataset.sv;pgSv()}}}
-/* Kartu Isi Cepat */
 const QC=(k,v,t,sub)=>`<button type="button" class="qc" data-q="${k}:${v}" aria-pressed="false"><b>${t}</b><small>${sub}</small></button>`,
  QK=`<div class="qk"><div class="qg"><span>Kondisi barang</span><div>${QC('c','RB','Semua RB','Rusak Berat')}${QC('c','B','Semua B','Baik')}</div></div><div class="qg"><span>Kesesuaian</span><div>${QC('m','Sesuai','Semua Sesuai','Sesuai data KIB')}${QC('m','Tidak Sesuai','Semua Tidak Sesuai','Tidak sesuai data KIB')}</div></div></div>`;
 function syncQ(){$$('#sv .qc').forEach(c=>{const [f,v]=c.dataset.q.split(':'),sel=$$(`#sv .sit[data-f=${f}]`),on=sel.length>0&&sel.every(x=>x.value==v);c.classList.toggle('on',on);c.setAttribute('aria-pressed',on)})}
-/* TTD buat nama pendamping (di tim penelitian penghapusan) */
 const SGN=[['tim','Tim Survei 1'],['p1','Tim SUrvei 2'],['p2','Tim Survei 3'],['p3','Tim Survei 4']],NMF=['tim','p1','p2','p3','jb'];
 let svN=-1;
 const nowStr=()=>new Date().toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
@@ -229,7 +218,6 @@ function lkModal(k){const S=SVS[svCur],nm=S.tm[k];S.lk=S.lk||{};const o=S.lk[k],
 function svDoc(S,o,k){const w=window.open('','_blank');if(!w)return toast('Pop-up diblokir browser.');const tm=S.tm||{};
  const sg=SGN.map(([x,r])=>{const t=S.ttd&&S.ttd[x];return `<td style="text-align:center;width:25%;vertical-align:bottom;padding:6px"><div>${r}</div><div style="height:84px">${t?`<img src="${esc(t.img)}" style="max-height:80px;max-width:100%;margin-top:2px">`:''}</div><b>${esc(tm[x]||'-')}</b>${x!='tim'&&tm.jb?`<div style="font-size:12px">${esc(tm.jb)}</div>`:''}</td>`}).join('');
  w.document.write(`<title>${esc(o.basl)}</title><body style="font:14px Arial;padding:40px"><h2 style="text-align:center">BERITA ACARA SURVEI LAPANGAN</h2><p style="text-align:center">Nomor: ${esc(o.basl)} · ${fd(o.tb)}</p><p>Objek: <b>${esc(o.ob)}</b> · Lokasi: ${esc(o.lk)||'-'}</p><table border=1 cellpadding=6 style="border-collapse:collapse;width:100%;font-size:13px"><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Tahun</th><th>Qty</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr>${k.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x[0])}</td><td>${esc(x[1])}</td><td>${esc(x[2])}</td><td>${esc(x[3])}</td><td>${esc(x[5])} ${esc(x[6])}</td><td>${esc(o.it[i].c)}</td><td>${esc(o.it[i].m)}</td><td>${esc(o.it[i].k)}</td></tr>`).join('')}</table>${tm.cat?`<p>Catatan tim: ${esc(tm.cat)}</p>`:''}<p style="margin-top:36px">Tim Penilai / Pemohon Pendamping:</p><table style="width:100%;border-collapse:collapse;margin-top:8px"><tr>${sg}</tr></table>`);w.document.close()}
-/* Untuk Generate Link (jadi nanti via link ttd nya) */
 function ttdFind(t){for(const[no,S]of Object.entries(SVS))for(const[k,l]of Object.entries(S.lk||{}))if(l&&l.t===t)return{no,k};return null}
 function ttdPage(t){document.body.classList.add('tpm');{const ts=$('#tst');if(ts&&ts.parentNode!==document.body)document.body.appendChild(ts)}let el=$('#ttdp');if(!el){el=document.createElement('div');el.id='ttdp';document.body.appendChild(el)}
  const hd='<header class="tph"><img alt="Logo BKAD Kota Bogor" src="assets/logo-bkad.png"><div><b>BKAD Kota Bogor</b><span>SI Penghapusan BMD</span></div></header>',
@@ -247,7 +235,6 @@ function ttdPage(t){document.body.classList.add('tpm');{const ts=$('#tst');if(ts
   if(!T||!T.lk||!T.lk[k]||T.lk[k].t!==t||T.st=='Selesai')return ttdPage(t);
   T.ttd=T.ttd||{};T.ttd[k]={img:pad.data(),ts:nowStr(),via:'link'};Store.persist();msg('Terima kasih','Tanda tangan '+esc(nm)+' sudah terkirim. Halaman ini boleh ditutup.')}}
 
-/* TTD digital pakai RX (bisa diisi, setelah simpan draft, lalu generate link TTD digital */
 const TTD_EXP=72*36e5;
 function ttdSah(no,f){const t=(RX[no]||{}).ttd;return t&&f&&t.sig===suratSig(f)?t:null}
 function ttdLinkAktif(no,f){const l=(RX[no]||{}).lk;return l&&f&&!l.used&&l.sig===suratSig(f)&&Date.now()<=l.exp?l:null}
@@ -255,7 +242,6 @@ function ttdBadge(no){const x=RX[no]||{},f=x.f;if(!f)return'';const t=ttdSah(no,
  if(t)return `<small class="ttds ok">✔ <b>Sudah ditandatangani digital</b> oleh ${esc(t.nm||f.kepala||'Kepala OPD')} · ${esc(t.ts)}${t.via=='link'?' · via link':''}${t.id?' · ID '+esc(t.id):''}</small>`;
  const lama=d&&d[6]!='Draft'&&d[6]!='Ditolak';
  return '<small class="ttds">TTD Kepala OPD dikosongkan sementara (nantinya diisi otomatis dari Data Master).</small>'}
-/* Regenerasi berkas surat (.docx) di data tersimpan agar memuat TTD terbaru. */
 async function suratSimpan(no){const x=RX[no],f=x&&x.f;if(!f||!suratSiap(f))return;f.files=f.files||[];f.files[0]=await suratPermohonanDocx(f,ttdSah(no,f));Store.persist()}
 function ttdFormF(){const r=$('input[name=jn]:checked');return{jn:r?r.value:'',no:$('#fn').value.trim(),tgl:$('#fd').value,pd:$('#fpd').value,kepala:$('#fkp').value.trim(),nip:$('#fnip').value.trim()}}
 /* kotak TTD */
@@ -285,7 +271,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-tt]');if(!
 ['#fkp','#fnip','#fpd','#fd','#fn'].forEach(q=>{const el=$(q);if(el){el.addEventListener('input',()=>{try{sum()}catch(er){}});el.addEventListener('change',()=>{try{sum()}catch(er){}})}});
 $$('input[name=jn]').forEach(r=>r.addEventListener('change',()=>{try{sum()}catch(er){}}));
 function ttdFindSurat(t){for(const[no,x]of Object.entries(RX))if(x&&x.lk&&x.lk.t===t)return no;return null}
-/* Halaman TTD (setelah generate link ttd,untuk kepala OPD) */
 function ttdSurat(el,hd,msg,t,no){const x=RX[no],lk=x.lk,f=x.f,d=R.find(r=>r[0]==no),nm=f&&f.kepala;
  if(!f||!d||lk.t!==t)return msg('Link tidak valid','Link tanda tangan tidak ditemukan atau sudah diganti. Minta staf pemohon membuat link baru.');
  if(lk.used)return msg('Sudah ditandatangani','Terima kasih'+(nm?', '+esc(nm):'')+'. Tanda tangan Anda tercatat pada '+esc(lk.used)+'. Link ini tidak dapat dipakai lagi.');
@@ -307,7 +292,7 @@ function ttdSurat(el,hd,msg,t,no){const x=RX[no],lk=x.lk,f=x.f,d=R.find(r=>r[0]=
   hs(no,'Surat ditandatangani digital oleh Kepala OPD',X.f.kepala+' · via link');
   try{await suratSimpan(no)}catch(er){console.warn('[TTD] berkas surat belum diperbarui',er)}
   Store.persist();msg('Terima kasih','Tanda tangan '+esc(X.f.kepala)+' sudah terkirim dan tercatat pada '+esc(ts)+'. Halaman ini boleh ditutup.')}}
-/* Dokumentasi lapangan: banyak foto + preview kartu kecil */
+
 let svFt=[];const SV_FMAX=12;
 function svFtRender(ro){const g=$('#s_fp'),c=$('#s_fc');if(!g)return;
  c.textContent=svFt.length?svFt.length+' foto':'Belum ada foto';
@@ -344,22 +329,27 @@ function svForm(s){const d=R.find(x=>x[0]==svCur),S=SVS[svCur],v=S.d||{basl:'BAS
    return cfm('Selesaikan survei?','Data survei dan tanda tangan akan dikunci, lalu survei masuk ke Penelitian Tim Penghapusan.',()=>{const T=SVS[svCur];if(!T)return;T.d=o;T.st='Selesai';T.tgl=today();Store.persist();toast('Survei selesai. Siap diteliti Tim Penghapusan.');svCur=null;pgSv()},'Selesai')}
   S.d=o;S.st='Draft';Store.persist();toast('Draft survei disimpan. Bisa dilanjutkan nanti dari daftar survei.');svCur=null;pgSv()}}
 const stPn={Belum:'s-n',Diteliti:'s-g'};
-/* Pgpt untuk surat penelitian */
-/* (Daftar Objek Penaksiran, kertas kerja penasksiran, laporan penaskiran), Database Referensi */
-const OB=[];   /* Daftar Objek Penaksiran: kosong, terisi dari penaksiran yang disetujui atau input manual. */
+const OB=[];   
 let obCur=null,obEd=null;const KK={},stOb={Draft:'s-o',Posted:'s-b'};
-const HP=[['2026-09-05','UD Berkah Logam','Tanah Sareal','Jl. Kayu Manis No. 12','0812-1111-2201','Besi','Rp/Kg',6200],['2026-09-06','Sinar Jaya','Bondongan','Jl. Bondongan Raya 3','0813-2222-3302','Besi','Rp/Kg',6500],['2026-09-09','Lapak Sinar Baja','Sukasari','Jl. Surya Kencana 21','0857-3333-4403','Besi','Rp/Kg',6350],['2026-09-05','UD Berkah Logam','Tanah Sareal','Jl. Kayu Manis No. 12','0812-1111-2201','Aluminium','Rp/Kg',17500],['2026-09-06','Pengepul Maju Jaya','Bondongan','Jl. Bondongan Raya 3','0813-2222-3302','Aluminium','Rp/Kg',18200],['2026-09-09','Lapak Sinar Baja','Sukasari','Jl. Surya Kencana 21','0857-3333-4403','Aluminium','Rp/Kg',17900],['2026-09-10','Lapak Sinar Baja','Sukasari','Jl. Surya Kencana 21','0857-3333-4403','Plastik','Rp/Kg',3100],['2026-09-10','UD Berkah Logam','Tanah Sareal','Jl. Kayu Manis No. 12','0812-1111-2201','Kertas','Rp/Kg',1900]].map(x=>({t:x[0],l:x[1],a:x[2],al:x[3],kt:x[4],m:x[5],s:x[6],h:x[7]}));
+const HP=[
+['2026-01-15','UD Sahrul Logam Jaya','Cibinong','Nanggewer, Cibinong, Bogor (-6.5155, 106.8306)','0877-8893-5187','Besi','Rp/Kg',5500],
+['2026-01-15','UD Sabar Subur Jaya','Gunung Putri','Karanggan, Kec. Gunung Putri, Kab. Bogor 16960 (-6.4518, 106.8859)','0812-1285-0587','Besi','Rp/Kg',5500],
+['2026-01-15','UD Makmur Jaya','Cibinong','Jl. Bintang Mas RT.01/RW.03, Nanggewer, Kec. Cibinong, Kab. Bogor 16912 (-6.2198, 106.7577)','0812-9360-2038','Besi','Rp/Kg',5500],
+['2026-01-15','UD Jaya Scrapindo','Ciomas','Jl. Kp. Sawah, Kaum, Mekarjaya, Kec. Ciomas, Kab. Bogor 16610 (-6.6138, 106.7789)','0896-5203-4206','Plastik','Rp/Kg',2000],
+['2026-01-15','Lapak Rongsok Ukat Sukatma','Tanah Sareal','Jl. Lantana II RT.02/RW.13, Kedung Waringin, Tanah Sareal, Kota Bogor 16164 (-6.5589, 106.7769)','0857-7513-6338','Plastik','Rp/Kg',2000],
+['2026-01-15','Rongsok Rangga Mekar','Bogor Tengah','Jl. Malabar RT.04/RW.03, Tegallega, Kec. Bogor Tengah, Kota Bogor 16129','0882-1223-4294','Plastik','Rp/Kg',2000],
+['2026-09-05','UD Berkah Logam','Tanah Sareal','Jl. Kayu Manis No. 12','0812-1111-2201','Aluminium','Rp/Kg',17500],
+['2026-09-06','Pengepul Maju Jaya','Bondongan','Jl. Bondongan Raya 3','0813-2222-3302','Aluminium','Rp/Kg',18200],
+['2026-09-09','Lapak Sinar Baja','Sukasari','Jl. Surya Kencana 21','0857-3333-4403','Aluminium','Rp/Kg',17900]].map(x=>({t:x[0],l:x[1],a:x[2],al:x[3],kt:x[4],m:x[5],s:x[6],h:x[7]}));
 const avg=m=>{const r=HP.filter(x=>x.m==m);return{n:r.length,v:r.length?r.reduce((a,x)=>a+x.h,0)/r.length:0}};
 function syncTksToObjects(){Object.entries(RX).forEach(([no,x])=>{const T=x&&x.tks,V=T&&T.verif;if(!V||V.st!='Disetujui'||!V.obId||OB.some(p=>p.id==V.obId))return;const d=R.find(r=>r[0]==no);if(!d)return;
- OB.push({id:V.obId,tksNo:no,no,tgl:today(),pd:d[1],al:((x.f||{}).alamat)||alamatOpdTerakhir(d[1])||'',pf:d[10]||'Permohonan penaksiran',st:'Draft',tksSource:true,o:(T.rows||[]).map(r=>({n:r.nama,k:r.kode,th:r.tahun,kd:r.kondisi,bt:'Tonase',mt:'Pendekatan Pasar',q:tksNum(r.tonase),sn:r.satt||'Kg',jl:'Lelang',mp:'Lainnya'}))})})}
+ OB.push({id:V.obId,tksNo:no,no,tgl:today(),pd:d[1],al:((x.f||{}).alamat)||alamatOpdTerakhir(d[1])||'',pf:d[10]||'Permohonan penaksiran',st:'Draft',tksSource:true,o:(T.rows||[]).map(r=>({n:r.nama,k:r.kode,th:r.tahun,kd:r.kondisi,bt:'Tonase',mt:bahanMetode(r.bahan),q:tksNum(r.tonase),sn:r.satt||'Kg',jl:'Lelang',mp:bahanMat(r.bahan),bh:r.bahan||'',kib:r.kib,reg:r.reg||'',merk:r.merk||''}))})})}
 /* Metode penilaian: Pendekatan Pasar = dihitung dari pembanding harga; Pendekatan Biaya = nilai diisi manual */
 const isPas=o=>o.mt=='Pendekatan Pasar'||o.mt=='Data Pasar';
-/* Nomor di Daftar Objek = nomor permohonan asalnya (tidak membuat kode baru).
-   Pilihan: permohonan yang sudah diterima Admin dan belum punya Daftar Objek. Data hasil penaksiran Pengguna Barang dikunci ke nomornya. */
 function obNos(p){if(p.tksSource&&p.no)return[p.no];const l=[...new Set(R.filter(d=>(d[6]=='Dalam Proses'||d[6]=='Disetujui')&&!OB.some(q=>q!==p&&q.no==d[0])).map(d=>d[0]))];if(p.no&&!l.includes(p.no))l.unshift(p.no);return['',...l]}
 function pgOb(){syncTksToObjects();const s=$('#ob');
  if(obEd&&OB.find(x=>x.id==obEd)?.st=='Posted'){obEd=null;toast('Permohonan yang sudah diposting tidak dapat diedit. Lakukan Unposting terlebih dahulu.')}
- if(obEd){const p=OB.find(x=>x.id==obEd);const _al=alamatPermohonan(p.no);if(_al)p.al=_al;else if(!p.al)p.al=alamatOpdTerakhir(p.pd)||'';s.innerHTML=HD(p.no?'Edit Permohonan Penaksiran':'Tambah Permohonan Penaksiran','',`<button class="btn o" data-a="bk">← Kembali</button>`)+sec('Identitas Permohonan')+`<div class="ff">${FL('o_no','Nomor Permohonan',p.no,'text',0,obNos(p))}${FL('o_tgl','Tanggal',p.tgl,'date')}${FL('o_pd','Perangkat Daerah / Pengguna Barang',p.pd,'text',0,NM)}${FL('o_al','Alamat Perangkat Daerah',p.al)}${FL('o_pf','Perihal / Maksud Penaksiran',p.pf,'area',1)}</div></div>`+sec('Daftar Objek yang Dimohonkan','Tambahkan seluruh objek BMD.',`<button class="btn sm" data-a="ad">＋ Tambah Objek</button>`)+(p.o.length?`<div class="al2" style="margin-bottom:12px">Pilih <b>Pendekatan Biaya</b> atau <b>Pendekatan Pasar</b> pada kolom Aksi untuk tiap objek. Tiap pendekatan menghasilkan <b>kertas kerja sendiri</b>: saat ini ${kkMetList(p).length} kertas kerja (${kkMetList(p).map(m=>KKM[m]+': '+p.o.filter(o=>kkMet(o)==m).length+' objek').join(', ')}).</div><div class="tw"><table><thead><tr><th>No</th><th>Nama Objek</th><th>Kode</th><th>Tahun</th><th>Kondisi</th><th>Bentuk</th><th>Metode</th><th>Kuantiti</th><th>Aksi</th></tr></thead><tbody>${p.o.map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}</td><td>${o.k}</td><td>${o.th}</td><td>${o.kd}</td><td>${o.bt}</td><td>${o.mt}</td><td>${o.q} ${o.sn}</td><td><div class="mtg"><button type="button" class="db${isPas(o)?'':' on'}" data-mt="${i}|Pendekatan Biaya" aria-pressed="${!isPas(o)}">Pendekatan Biaya</button><button type="button" class="db${isPas(o)?' on':''}" data-mt="${i}|Pendekatan Pasar" aria-pressed="${isPas(o)}">Pendekatan Pasar</button><button type="button" class="db" data-del="${i}">Hapus</button></div></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada objek','Klik “Tambah Objek”.'))+'</div><div id="o_f"></div><div style="text-align:right;margin-bottom:20px"><button class="btn" data-a="sv">Simpan Permohonan</button></div>';
+ if(obEd){const p=OB.find(x=>x.id==obEd);const _al=alamatPermohonan(p.no);if(_al)p.al=_al;else if(!p.al)p.al=alamatOpdTerakhir(p.pd)||'';s.innerHTML=HD(p.no?'Edit Permohonan Penaksiran':'Tambah Permohonan Penaksiran','',`<button class="btn o" data-a="bk">← Kembali</button>`)+sec('Identitas Permohonan')+`<div class="ff">${FL('o_no','Nomor Permohonan',p.no,'text',0,obNos(p))}${FL('o_tgl','Tanggal',p.tgl,'date')}${FL('o_pd','Perangkat Daerah / Pengguna Barang',p.pd,'text',0,NM)}${FL('o_al','Alamat Perangkat Daerah',p.al)}${FL('o_pf','Perihal / Maksud Penaksiran',p.pf,'area',1)}</div></div>`+sec('Daftar Objek yang Dimohonkan','Tambahkan seluruh objek BMD.')+(p.o.length?`<div class="al2" style="margin-bottom:12px">Pilih <b>Pendekatan Biaya</b> atau <b>Pendekatan Pasar</b> pada kolom Aksi untuk tiap objek. Tiap pendekatan menghasilkan <b>kertas kerja sendiri</b>: saat ini ${kkMetList(p).length} kertas kerja (${kkMetList(p).map(m=>KKM[m]+': '+p.o.filter(o=>kkMet(o)==m).length+' objek').join(', ')}).</div><div class="tw"><table><thead><tr><th>No</th><th>Nama Objek</th><th>Kode</th><th>Tahun</th><th>Kondisi</th><th>Bentuk</th><th>Metode</th><th>Kuantiti</th><th>Aksi</th></tr></thead><tbody>${p.o.map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}${o.bh||o.mp?`<small class="mt">${esc(o.bh||o.mp)}${o.reg?' · Reg. '+esc(o.reg):''}</small>`:''}</td><td>${o.k}</td><td>${o.th}</td><td>${o.kd}</td><td>${o.bt}</td><td>${o.mt}</td><td>${o.q} ${o.sn}</td><td><div class="mtg"><button type="button" class="db${isPas(o)?'':' on'}" data-mt="${i}|Pendekatan Biaya" aria-pressed="${!isPas(o)}">Pendekatan Biaya</button><button type="button" class="db${isPas(o)?' on':''}" data-mt="${i}|Pendekatan Pasar" aria-pressed="${isPas(o)}">Pendekatan Pasar</button><button type="button" class="db" data-del="${i}">Hapus</button></div></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada objek','Klik “Tambah Objek”.'))+'</div><div id="o_f"></div><div style="text-align:right;margin-bottom:20px"><button class="btn" data-a="sv">Simpan Permohonan</button></div>';
   if(_al){const e0=$('#o_al');if(e0){e0.readOnly=true;e0.title='Diambil otomatis dari permohonan pengguna barang'}}
   s.onchange=e=>{if(e.target.id!='o_no')return;const d=R.find(r=>r[0]==e.target.value);if(!d)return;$('#o_pd').value=d[1];const _a=alamatPermohonan(d[0]),oa=$('#o_al');if(oa){oa.value=_a||alamatOpdTerakhir(d[1])||'';oa.readOnly=!!_a}if(!val('o_pf'))$('#o_pf').value=d[10]||''};
   s.onclick=e=>{const b=e.target.closest('[data-a],[data-del],[data-mt]');if(!b)return;const sy0=()=>{p.no=val('o_no');p.tgl=val('o_tgl');p.pd=val('o_pd');p.al=val('o_al');p.pf=val('o_pf')};if(b.dataset.mt!=null){sy0();const [i,m]=b.dataset.mt.split('|');if(p.o[+i])p.o[+i].mt=m;return pgOb()}if(b.dataset.del!=null){sy0();p.o.splice(+b.dataset.del,1);return pgOb()}const a=b.dataset.a;
@@ -368,10 +358,8 @@ function pgOb(){syncTksToObjects();const s=$('#ob');
    if(a=='ad'){sy();$('#o_f').innerHTML=sec('Tambah Objek Penaksiran')+`<div class="ff">${FL('x_n','Nama Barang / Objek','')}${FL('x_k','Kode / NIBAR','')}${FL('x_th','Tahun Perolehan','2010','number')}${FL('x_kd','Kondisi','Rusak Berat','text',0,['Rusak Berat','Rusak Sedang'])}${FL('x_bt','Bentuk','Scrap','text',0,['Scrap','Satuan','Material Bongkaran'])}${FL('x_mt','Metode','Pendekatan Biaya','text',0,['Pendekatan Pasar','Pendekatan Biaya'])}${FL('x_mp','Jenis Material','Besi','text',0,['Besi','Aluminium','Baja','Plastik','Kertas','Lainnya'])}${FL('x_q','Kuantiti','','number')}${FL('x_sn','Satuan','KG','text',0,['KG','Batang','Unit','Meter','Liter'])}${FL('x_jl','Metode Penjualan','Lelang','text',0,['Lelang','Langsung'])}</div><div style="text-align:right"><button class="btn" data-a="so">Simpan Objek</button></div></div>`;return}
    if(a=='so'){if(!val('x_n')||!(+val('x_q')>0)){const f=$(!val('x_n')?'#x_n':'#x_q');if(f)f.focus();return toast('Isi nama objek dan kuantiti (lebih dari 0) lebih dulu.')}p.o.push({n:val('x_n'),k:val('x_k')||'-',th:val('x_th'),kd:val('x_kd'),bt:val('x_bt'),mt:val('x_mt'),mp:val('x_mp'),q:+val('x_q'),sn:val('x_sn'),jl:val('x_jl')});sy();return pgOb()}
    if(a=='sv'){sy();if(!p.no||!p.o.length)return toast('Isi nomor permohonan dan minimal satu objek.');toast('Permohonan penaksiran disimpan.');obEd=null;pgOb()}};return}
- s.innerHTML=HD('Daftar Objek Penaksiran','',`<button class="btn" data-a="nw">＋ Tambah Permohonan</button>`)+AL_OB+sec('Daftar Permohonan Penaksiran','')+(OB.length?`<div class="tw"><table><thead><tr><th>No</th><th>Permohonan</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Jumlah Objek</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${OB.map((p,i)=>`<tr><td>${i+1}</td><td>${p.no}</td><td>${fd(p.tgl)}</td><td>${p.pd}</td><td>${p.o.length}</td><td>${PL(stOb[p.st],p.st)}</td><td style="white-space:nowrap"><button class="db" data-oe="${p.id}"${p.st=='Posted'?' disabled aria-disabled="true" title="Sudah diposting. Unposting terlebih dahulu untuk mengedit." style="opacity:.4;cursor:not-allowed"':''}>Edit</button> <button class="db" data-ps="${p.id}">${p.st=='Posted'?'Unposting':'Posting'}</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada permohonan','Klik “Tambah Permohonan”.'))+'</div>';
+ s.innerHTML=HD('Daftar Objek Penaksiran','')+AL_OB+sec('Daftar Permohonan Penaksiran','')+(OB.length?`<div class="tw"><table><thead><tr><th>No</th><th>Permohonan</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Jumlah Objek</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${OB.map((p,i)=>`<tr><td>${i+1}</td><td>${p.no}</td><td>${fd(p.tgl)}</td><td>${p.pd}</td><td>${p.o.length}</td><td>${PL(stOb[p.st],p.st)}</td><td style="white-space:nowrap"><button class="db" data-oe="${p.id}"${p.st=='Posted'?' disabled aria-disabled="true" title="Sudah diposting. Unposting terlebih dahulu untuk mengedit." style="opacity:.4;cursor:not-allowed"':''}>Edit</button> <button class="db" data-ps="${p.id}">${p.st=='Posted'?'Unposting':'Posting'}</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada permohonan','Klik “Tambah Permohonan”.'))+'</div>';
  s.onchange=null;s.onclick=e=>{const b=e.target.closest('[data-a],[data-oe],[data-ps]');if(!b)return;if(b.dataset.a=='nw'){OB.push({id:Date.now(),no:'',tgl:today(),pd:NM[0],al:'',pf:'',st:'Draft',o:[]});obEd=OB[OB.length-1].id}if(b.dataset.oe){const q=OB.find(x=>x.id==b.dataset.oe);if(q&&q.st=='Posted')return toast('Permohonan yang sudah diposting tidak dapat diedit. Lakukan Unposting terlebih dahulu.');obEd=+b.dataset.oe}if(b.dataset.ps){const p=OB.find(x=>x.id==b.dataset.ps);p.st=p.st=='Posted'?'Draft':'Posted';if(p.st=='Draft'){delete KK[p.id];delete KK[kkKey(p,'pasar')];delete KK[kkKey(p,'biaya')]}toast(p.st=='Posted'?'Diposting ke Kertas Kerja.':'Ditarik dari Kertas Kerja.')}pgOb()}}
-/* ===== Kertas Kerja Penaksiran: satu permohonan bisa punya DUA kertas kerja, satu per metode (Pendekatan Pasar / Pendekatan Biaya) =====
-   Metode tiap objek dipilih di Daftar Objek (kolom Aksi). Data tiap kertas kerja disimpan di KK['<id permohonan>:pasar'] dan KK['<id permohonan>:biaya']. */
 const KKM={pasar:'Pendekatan Pasar',biaya:'Pendekatan Biaya'};
 const kkMet=o=>isPas(o)?'pasar':'biaya';
 const kkKey=(p,m)=>p.id+':'+m;
@@ -379,15 +367,86 @@ const kkMetList=p=>['pasar','biaya'].filter(m=>p.o.some(o=>kkMet(o)==m));
 const kkDone=(p,m)=>!!(KK[kkKey(p,m)]&&KK[kkKey(p,m)].done);
 const kkAllDone=p=>{const l=kkMetList(p);return l.length>0&&l.every(m=>kkDone(p,m))};
 /* Data lama (satu kertas kerja per permohonan, kunci = id) dipecah ke kertas kerja per metode */
-function kkMigrasi(){Object.keys(KK).filter(k=>!String(k).includes(':')).forEach(k=>{const p=OB.find(x=>x.id==k),old=KK[k];delete KK[k];if(!p||!old)return;kkMetList(p).forEach(m=>{KK[kkKey(p,m)]=JSON.parse(JSON.stringify(old))})})}
-function kkNilai(p,k){const o=p.o[k],r=KK[kkKey(p,kkMet(o))]||{},m=(r.m&&r.m[k])||o.mp,a=avg(m),ad=(r.a&&r.a[k]!=null)?r.a[k]:(o.kd=='Rusak Berat'?20:10);return{m,n:a.n,v:a.v,ad,nl:isPas(o)?o.q*a.v*(1-ad/100):(+(r.b&&r.b[k])||0)}}
+function kkMigrasi(){kkMigrasiLama();Object.keys(KK).filter(k=>/:pasar$/.test(k)&&!KK[k].v).forEach(k=>{KK[k]={v:2,mat:{}}})}
+function kkMigrasiLama(){Object.keys(KK).filter(k=>!String(k).includes(':')).forEach(k=>{const p=OB.find(x=>x.id==k),old=KK[k];delete KK[k];if(!p||!old)return;kkMetList(p).forEach(m=>{KK[kkKey(p,m)]=JSON.parse(JSON.stringify(old))})})}
+/* ===== Pendekatan Pasar sesuai KKAP (Excel "KKP Besi" / "KKP Plastik") =====
+   Per MATERIAL: 3 pembanding x 9 penyesuaian (5 transaksional berantai + 4 non-transaksional dijumlahkan) -> indikasi nilai -> pembobotan
+   -> nilai per kg -> dikurangi bea lelang -> dibulatkan = HARGA PER KG material. Nilai tiap objek = tonase (Kg) x harga per kg materialnya. */
+const KK_BEA=0.02,KK_BULAT=100;
+const KK_TR=['Syarat dan jangka waktu pembiayaan','Kondisi penjualan','Biaya yang harus dikeluarkan setelah pembelian','Waktu transaksi','Jenis transaksi'],KK_NT=['Kondisi','Kualitas','Bentuk','Material pengotor'];
+const kkQkg=o=>o.sn=='Ton'?o.q*1000:o.q;
+const kkMats=p=>[...new Set(p.o.filter(isPas).map(o=>o.mp||'Lainnya'))];
+const kkSama=(a,b)=>!!a&&!!b&&a.l==b.l&&a.t==b.t&&a.h==b.h;
+const kkRp=n=>'Rp '+(Math.round(n*100)/100).toLocaleString('id-ID',{maximumFractionDigits:2});
+const kkPct=n=>(Math.round(n*10000)/100).toLocaleString('id-ID',{maximumFractionDigits:2})+'%';
+function kkMatData(p,mat,buat){const key=kkKey(p,'pasar');let r=KK[key];if(!r){if(!buat)return null;r=KK[key]={v:2,mat:{}}}r.mat=r.mat||{};let d=r.mat[mat];if(!d&&buat){const pool=HP.filter(x=>x.m==mat);d=r.mat[mat]={pb:[0,1,2].map(i=>pool[i]?{...pool[i]}:null),adj:[0,1,2].map(()=>Array(9).fill(0))}}return d||null}
+function kkHitung(d){const pb=((d&&d.pb)||[]).slice(0,3).map((x,i)=>{if(!x||!(+x.h>0))return{ok:false,abs:0,st:[]};const a=((d.adj&&d.adj[i])||[]).map(n=>(+n||0)/100);let v=+x.h;const st=a.slice(0,5).map(k=>v=v+k*v),i1=v,s2=a.slice(5,9).reduce((q,k)=>q+k,0);return{ok:true,h:+x.h,st,i1,s2,i2:i1+s2*i1,abs:a.reduce((q,k)=>q+Math.abs(k),0)}});while(pb.length<3)pb.push({ok:false,abs:0,st:[]});
+ const ok=pb.every(x=>x.ok);let w=[0.3333,0.3333,0.3334];const S=pb.reduce((q,x)=>q+x.abs,0);
+ /* Bobot: pembanding dengan total penyesuaian absolut lebih kecil mendapat bobot lebih besar; bila semua 0 = bobot sama (0,3333 / 0,3333 / 0,3334) seperti di Excel */
+ if(ok&&S>0){w=pb.map(x=>Math.round((S-x.abs)/(2*S)*10000)/10000);w[2]=Math.round((1-w[0]-w[1])*10000)/10000}
+ const nil=pb.map((x,i)=>ok?w[i]*x.i2:0),perkg=nil.reduce((q,x)=>q+x,0),bea=perkg*KK_BEA,taks=perkg-bea;
+ return{pb,ok,w,nil,perkg,bea,taks,bulat:ok?Math.round(taks/KK_BULAT)*KK_BULAT:0}}
+function kkNilai(p,k){const o=p.o[k];if(isPas(o)){const mat=o.mp||'Lainnya',d=kkMatData(p,mat,false),h=d?kkHitung(d):null;return{m:mat,n:h?h.pb.filter(x=>x.ok).length:0,v:h?h.bulat:0,nl:h?kkQkg(o)*h.bulat:0}}const r=KK[kkKey(p,'biaya')]||{};return{m:o.mp,n:0,v:0,nl:(+(r.b&&r.b[k])||0)}}
+function kkSimpanPasar(p){$$('#kk .kkpb').forEach(x=>{if(x.value=='keep')return;const d=kkMatData(p,x.dataset.mat,true),i=+x.dataset.ai,pool=HP.filter(h=>h.m==x.dataset.mat);d.pb[i]=x.value===''?null:(pool[+x.value]?{...pool[+x.value]}:d.pb[i])});$$('#kk .kkp').forEach(x=>{const d=kkMatData(p,x.dataset.mat,true);d.adj[+x.dataset.ai][+x.dataset.ak]=+x.value||0})}
+function kkCek(p){for(const mat of kkMats(p)){const d=kkMatData(p,mat,false),h=d&&kkHitung(d);if(!h||!h.ok)return 'Pilih 3 pembanding berharga untuk material '+mat+'.';if(new Set(d.pb.map(x=>x.l+'|'+x.t+'|'+x.h)).size<3)return 'Tiga pembanding material '+mat+' harus berbeda.'}return ''}
+const kkFold={};   /* status lipat (true = terbuka); disimpan di sini agar tidak hilang saat halaman digambar ulang */
+const kkOpen=(k,def)=>kkFold[k]==null?def:kkFold[k];
+/* Keterangan singkat tiap faktor penyesuaian (urutan sama dengan KK_TR lalu KK_NT) */
+const KK_DESC=['Perbedaan syarat pembayaran dan jangka waktu','Perbedaan situasi dan kondisi penjualan','Biaya tambahan setelah pembelian','Perbedaan waktu transaksi','Perbedaan jenis transaksi','Perbedaan kondisi barang','Perbedaan mutu material','Perbedaan bentuk barang','Perbedaan kadar material pengotor'];
+const KV_IC={layers:'<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/>',tag:'<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3"/>',calc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>',chk:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',bar:'<path d="M5 20V10M12 20V4M19 20v-7"/>',scale:'<path d="M12 4v16M6 20h12M5 8h14M5 8l-3 7a3.2 3.2 0 0 0 6 0L5 8ZM19 8l-3 7a3.2 3.2 0 0 0 6 0l-3-7Z"/>'};
+const kvSvg=n=>`<svg class="kzi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KV_IC[n]}</svg>`;
+const kvSec=(no,t,u,r,body)=>`<section class="kzs"><div class="kzh"><i class="kzn">${no}</i><b>${t}</b>${u?`<small>${u}</small>`:''}${r?`<span class="kzr">${r}</span>`:''}</div><div class="kzb">${body}</div></section>`;
+function kkMatSection(p,mat,done,idx,rs){
+ const d=kkMatData(p,mat,!done)||{pb:[],adj:[]},h=kkHitung(d),pool=HP.filter(x=>x.m==mat),objs=idx.filter(i=>(p.o[i].mp||'Lainnya')==mat),kg=objs.reduce((a,i)=>a+kkQkg(p.o[i]),0),sub=objs.reduce((a,i)=>a+rs[i].nl,0),dis=done?' disabled':'';
+ const kgT=(Math.round(kg*1000)/1000).toLocaleString('id-ID'),kM='m:'+p.id+':'+mat,kA='a:'+p.id+':'+mat,multi=kkMats(p).length>1;
+ const adjv=(i,k)=>+((d.adj[i]||[])[k])||0,pbh=i=>h.pb[i];
+ const n2=[0,1,2].reduce((a,i)=>a+KK_NT.filter((_,k)=>adjv(i,k+5)).length,0);
+ /* Bila ada beberapa material: yang pertama terbuka, sisanya tertutup. Penyesuaian 2 tertutup kecuali sudah ada yang diisi. */
+ const openM=kkOpen(kM,kkMats(p)[0]==mat),openA=kkOpen(kA,n2>0);
+ const badge=h.ok?PL('s-g','Lengkap'):PL('s-r','Pembanding kurang');
+ const row=(lb,f,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${lb}</td>${[0,1,2].map(i=>`<td>${f(i)}</td>`).join('')}</tr>`;
+ const grp=(t,u)=>`<tr class="kkg"><td colspan="4"><span>${t}</span>${u?`<em>${u}</em>`:''}</td></tr>`;
+ const fak=k=>`<b>${k+1}. ${k<5?KK_TR[k]:KK_NT[k-5]}</b><small>${KK_DESC[k]}</small>`;
+ const sel=i=>{const x=d.pb[i],si=pool.findIndex(y=>kkSama(x,y));return `<select class="kkpb" data-mat="${esc(mat)}" data-ai="${i}"${dis}><option value=""> pilih pembanding </option>${x&&si<0?`<option value="keep" selected>${esc(x.l)} (data tersimpan)</option>`:''}${pool.map((y,j)=>`<option value="${j}"${j==si?' selected':''}>${esc(y.l)} · ${esc(y.a)} · ${RP(y.h)}/Kg</option>`).join('')}</select>`};
+ const inp=(i,k)=>`<input class="kkp${adjv(i,k)?' on':''}" type="number" step="any" data-mat="${esc(mat)}" data-ai="${i}" data-ak="${k}" value="${adjv(i,k)}"${dis}> %`;
+ const th=i=>{const x=d.pb[i];return `<th><b>${x?esc(x.l):'Pembanding '+(i+1)}</b><small>${pbh(i).ok?kkRp(pbh(i).h)+' / Kg':'belum dipilih'}</small></th>`};
+ const warn=!h.ok?`<div class="al2 rjb" style="margin:0 0 12px">Pilih <b>3 pembanding</b> untuk material <b>${esc(mat)}</b>. Data Harga Pembanding material ini baru <b>${pool.length}</b> baris${pool.length<3?': tambahkan di menu Harga Pembanding (minimal 3)':''}.</div>`:'';
+
+ /* 1. Informasi objek */
+ const s1=kvSec(1,'Informasi Objek','',multi?'':badge,`<div class="kz1"><div class="kzc"><span><small>Material</small><b>${esc(mat)}</b></span></div><div class="kzc"><span><small>Harga Objek</small><b class="bl">${h.ok?kkRp(h.bulat)+' /Kg':'-'}</b></span></div><div class="kzc"><span><small>Nilai Objek · ${kgT} Kg</small><b>${RP(sub)}</b></span></div></div>`);
+ /* 2. Objek pembanding */
+ const s2=kvSec(2,'Objek Pembanding','Pilih 3 pembanding dari data Harga Pembanding','',warn+`<div class="kz2">${[0,1,2].map(i=>{const x=d.pb[i];return `<div class="kzp"><div class="kzpt"><b>Pembanding ${i+1}</b>${pbh(i).ok?`<span class="kzchip">${kkRp(pbh(i).h)} /Kg</span>`:''}</div>${sel(i)}${x?`<div class="kzpi"><span>${esc(x.al)}</span><span>${esc(x.kt)} · ${fd(x.t)}</span></div>`:'<div class="kzpi">Belum dipilih</div>'}</div>`}).join('')}</div>`);
+ /* 3. Penyesuaian */
+ const tbl=`<div class="kkw"><table class="kkt${openA?'':' shut'}"><thead><tr><th style="width:34%">Faktor Penyesuaian</th>${[0,1,2].map(th).join('')}</tr></thead><tbody>`+
+  grp('Penyesuaian 1 · transaksional','berantai: tiap persen dihitung dari hasil sebelumnya')+
+  KK_TR.map((t,k)=>row(fak(k),i=>inp(i,k)+(pbh(i).ok&&adjv(i,k)?`<small>${kkRp(pbh(i).st[k])}</small>`:''))).join('')+
+  row('Indikasi nilai objek 1',i=>pbh(i).ok?kkRp(pbh(i).i1):'-','kks')+
+  `<tr class="kkg kkgt"><td colspan="4"><button type="button" class="kkfb" data-kkf="${kA}" aria-expanded="${openA}"><i class="kkch" aria-hidden="true">▾</i><span>Penyesuaian 2 · non transaksional</span><em>dijumlahkan · ${n2?n2+' kolom terisi':'belum ada yang diisi'}</em><span class="kkfx"></span></button></td></tr>`+
+  KK_NT.map((t,k)=>row(fak(k+5),i=>inp(i,k+5),'kk2')).join('')+
+  row('Jumlah penyesuaian 2',i=>pbh(i).ok?kkPct(pbh(i).s2):'-','kks')+row('Indikasi nilai objek 2',i=>pbh(i).ok?kkRp(pbh(i).i2):'-','kks')+
+  `</tbody></table></div>`;
+ const s3=kvSec(3,'Penyesuaian','Penyesuaian berdasarkan karakteristik objek dan pembanding','',tbl);
+ /* 4. Hasil penyesuaian & pembobotan */
+ const hasil=`<div class="kkr"><div><small>Nilai per Kg</small><b>${h.ok?kkRp(h.perkg):'-'}</b></div><i>→</i><div><small>Bea lelang (${KK_BEA*100}%)</small><b>${h.ok?'- '+kkRp(h.bea):'-'}</b></div><i>→</i><div><small>Nilai taksiran</small><b>${h.ok?kkRp(h.taks):'-'}</b></div><i>→</i><div class="kkh2"><small>Pembulatan = harga per Kg</small><b>${h.ok?kkRp(h.bulat):'-'}</b></div></div>`;
+ const s4=kvSec(4,'Hasil Penyesuaian &amp; Pembobotan','','',`<div class="kz4"><div><h3>Indikasi Nilai</h3><div class="kztiles">${[0,1,2].map(i=>`<div class="kztile"><small>Pembanding ${i+1}</small><b>${pbh(i).ok?kkRp(pbh(i).i2):'-'}</b><small>/Kg</small></div>`).join('')}</div></div><div><h3>Pembobotan</h3><div class="kzw">${[0,1,2].map(i=>`<div><span>Pembanding ${i+1}</span><b>${h.ok?kkPct(h.w[i]):'-'}</b></div>`).join('')}</div></div></div>${hasil}`);
+ /* 5. Objek penaksiran */
+ const s5=kvSec(5,'Objek Penaksiran','','',`<div class="tw"><table><thead><tr><th>Objek</th><th>Jumlah</th><th>Satuan</th><th>Harga per Kg</th><th>Nilai Taksiran</th></tr></thead><tbody>${objs.map(i=>{const o=p.o[i];return `<tr><td>${esc(o.n)}<small>${esc(o.bh||o.mp||'')}${o.reg?' · Reg. '+esc(o.reg):''} · ${o.kd}</small></td><td>${o.q}</td><td>${o.sn}</td><td>${h.ok?kkRp(h.bulat):'-'}</td><td><b>${RP(rs[i].nl)}</b></td></tr>`}).join('')}<tr><td><b>Subtotal ${esc(mat)}</b></td><td colspan="3"><b>${kgT} Kg</b></td><td><b>${RP(sub)}</b></td></tr></tbody></table></div>`);
+ const isi=s1+s2+s3+s4+s5;
+ if(!multi)return `<div class="kzm">${isi}</div>`;
+ return `<div class="cd kkm2${openM?'':' shut'}"><button type="button" class="kkmh" data-kkf="${kM}" aria-expanded="${openM}"><i class="kkch" aria-hidden="true">▾</i><span class="kkmt"><b>Material: ${esc(mat)}</b><small>${objs.length} objek · ${kgT} Kg</small></span><span class="kkms">${h.ok?`<span>Harga <b>${kkRp(h.bulat)}/Kg</b></span><span>Subtotal <b>${RP(sub)}</b></span>`:''}${badge}</span></button><div class="kkbody">${isi}</div></div>`}
+function kkDetail(s,p,mt){
+ const key=kkKey(p,mt),done=kkDone(p,mt),pas=mt=='pasar',ls=kkMetList(p),idx=p.o.map((_,i)=>i).filter(i=>kkMet(p.o[i])==mt),lain=ls.filter(m=>m!=mt);
+ if(pas&&!done)kkMats(p).forEach(m=>kkMatData(p,m,true));
+ const rs=p.o.map((_,i)=>kkNilai(p,i)),tot=idx.reduce((a,i)=>a+rs[i].nl,0);
+ const top=HD('Kertas Kerja Penaksiran · '+KKM[mt],p.no+' · '+p.pd,`<button class="btn o" data-a="bk">← Kembali</button>${lain.map(m=>`<button class="btn o" data-kk2="${p.id}:${m}">Buka Kertas Kerja ${KKM[m]}</button>`).join('')}`)+(ls.length>1?`<div class="al2" style="margin-bottom:14px">Permohonan ini memiliki <b>${ls.length} kertas kerja</b> karena objeknya memakai metode berbeda: ${ls.map(m=>KKM[m]+' ('+(kkDone(p,m)?'selesai':'proses')+')').join(' dan ')}.</div>`:'');
+ const body=pas?kkMats(p).map(m=>kkMatSection(p,m,done,idx,rs)).join(''):sec('Perhitungan Nilai Taksiran','Pendekatan Biaya: nilai taksiran diisi manual untuk setiap objek.',done?PL('s-g','Selesai'):'')+`<div class="tw"><table><thead><tr><th>No</th><th>Objek</th><th>Kuantiti</th><th>Metode</th><th>Nilai Taksiran</th></tr></thead><tbody>${idx.map((i,n)=>{const o=p.o[i],x=rs[i];return `<tr><td>${n+1}</td><td>${esc(o.n)}<small>${o.kd} · ${o.jl}</small></td><td>${o.q} ${o.sn}</td><td>${o.mt}</td><td><b><input class="kkb" data-i="${i}" type="number" value="${x.nl}" ${done?'disabled':''} style="width:130px;border:1px solid var(--ln);border-radius:8px;padding:6px"></b></td></tr>`}).join('')}</tbody></table></div></div>`;
+ s.innerHTML=top+body+`<div class="kzf"><div><small>Total Nilai Taksiran</small><b>${RP(tot)}</b></div><p></p>${done?PL('s-g','Selesai'):`<button class="btn" data-a="fin">Selesaikan Kertas Kerja →</button>`}</div>`;
+ s.onclick=e=>{const f=e.target.closest('[data-kkf]');if(f){const k=f.dataset.kkf,c=f.closest(k[0]=='a'?'.kkt':'.kkm2'),shut=c.classList.toggle('shut');kkFold[k]=!shut;f.setAttribute('aria-expanded',String(!shut));return}const o2=e.target.closest('[data-kk2]');if(o2){obCur=o2.dataset.kk2;return pgKk()}const b=e.target.closest('[data-a]');if(!b)return;if(b.dataset.a=='bk'){obCur=null;return pgKk()}if(done)return;
+  if(pas){kkSimpanPasar(p);const m=kkCek(p);if(m)return toast(m)}else sv(p,key);
+  KK[key]=KK[key]||{};KK[key].done=true;toast('Kertas Kerja '+KKM[mt]+' selesai.'+(kkAllDone(p)?' Laporan tersedia.':' Selesaikan juga kertas kerja lainnya untuk permohonan ini.'));pgKk()};
+ s.onchange=e=>{if(kkDone(p,mt))return;if(pas)kkSimpanPasar(p);else sv(p,key);pgKk()}}
 function pgKk(){syncTksToObjects();kkMigrasi();const s=$('#kk'),ps=OB.filter(p=>p.st=='Posted'),[pid,mt]=String(obCur||'').split(':');
- if(mt&&KKM[mt]&&ps.find(p=>p.id==pid)){const p=OB.find(x=>x.id==pid),key=kkKey(p,mt),done=kkDone(p,mt),pas=mt=='pasar',ls=kkMetList(p),idx=p.o.map((_,i)=>i).filter(i=>kkMet(p.o[i])==mt),rs=p.o.map((_,i)=>kkNilai(p,i)),tot=idx.reduce((a,i)=>a+rs[i].nl,0),lain=ls.filter(m=>m!=mt);
-  const head=pas?'<th>No</th><th>Objek</th><th>Kuantiti</th><th>Metode</th><th>Material</th><th>Pembanding</th><th>Rata-rata</th><th>Penyesuaian %</th><th>Nilai Taksiran</th>':'<th>No</th><th>Objek</th><th>Kuantiti</th><th>Metode</th><th>Nilai Taksiran</th>';
-  const inp='style="border:1px solid var(--ln);border-radius:8px;padding:6px"';
-  s.innerHTML=HD('Kertas Kerja Penaksiran · '+KKM[mt],p.no+' · '+p.pd,`<button class="btn o" data-a="bk">← Kembali</button>${lain.map(m=>`<button class="btn o" data-kk2="${p.id}:${m}">Buka Kertas Kerja ${KKM[m]}</button>`).join('')}`)+(ls.length>1?`<div class="al2" style="margin-bottom:14px">Permohonan ini memiliki <b>${ls.length} kertas kerja</b> karena objeknya memakai metode berbeda: ${ls.map(m=>KKM[m]+' ('+(kkDone(p,m)?'selesai':'proses')+')').join(' dan ')}.</div>`:'')+sec('Perhitungan Nilai Taksiran',pas?'Pendekatan Pasar: kuantiti × rata-rata harga pembanding × (1 − penyesuaian kondisi). Minimal 3 pembanding.':'Pendekatan Biaya: nilai taksiran diisi manual untuk setiap objek.',done?PL('s-g','Selesai'):'')+`<div class="tw"><table><thead><tr>${head}</tr></thead><tbody>${idx.map((i,n)=>{const o=p.o[i],x=rs[i];return pas?`<tr><td>${n+1}</td><td>${esc(o.n)}<small>${o.kd} · ${o.jl}</small></td><td>${o.q} ${o.sn}</td><td>${o.mt}</td><td><select class="kkm" data-i="${i}" ${done?'disabled':''}>${(MT.includes(x.m)?MT:[x.m,...MT]).map(m=>`<option${m==x.m?' selected':''}>${m}</option>`)}</select></td><td>${x.n} ${x.n<3?'<span class="stt s-r">kurang</span>':''}</td><td>${RP(x.v)}/${o.sn}</td><td><input class="kka" data-i="${i}" type="number" value="${x.ad}" ${done?'disabled':''} style="width:70px;border:1px solid var(--ln);border-radius:8px;padding:6px"></td><td><b>${RP(x.nl)}</b></td></tr>`:`<tr><td>${n+1}</td><td>${esc(o.n)}<small>${o.kd} · ${o.jl}</small></td><td>${o.q} ${o.sn}</td><td>${o.mt}</td><td><b><input class="kkb" data-i="${i}" type="number" value="${x.nl}" ${done?'disabled':''} style="width:130px;border:1px solid var(--ln);border-radius:8px;padding:6px"></b></td></tr>`}).join('')}</tbody></table></div><div style="text-align:right;margin-top:14px;font-size:15px">Total nilai taksiran (${KKM[mt]}): <b>${RP(tot)}</b></div></div>`+(done?'':`<div style="text-align:right;margin-bottom:20px"><button class="btn" data-a="fin">Selesaikan Kertas Kerja ${KKM[mt]}</button></div>`);
-  s.onclick=e=>{const o2=e.target.closest('[data-kk2]');if(o2){obCur=o2.dataset.kk2;return pgKk()}const b=e.target.closest('[data-a]');if(!b)return;if(b.dataset.a=='bk'){obCur=null;return pgKk()}if(done)return;sv(p,key);if(pas&&idx.some(i=>kkNilai(p,i).n<3))return toast('Pendekatan Pasar membutuhkan minimal 3 pembanding per material.');KK[key].done=true;toast('Kertas Kerja '+KKM[mt]+' selesai.'+(kkAllDone(p)?' Laporan tersedia.':' Selesaikan juga kertas kerja lainnya untuk permohonan ini.'));pgKk()};
-  s.onchange=e=>{if(kkDone(p,mt))return;sv(p,key);pgKk()};return}
+ if(mt&&KKM[mt]&&ps.find(p=>p.id==pid))return kkDetail(s,OB.find(x=>x.id==pid),mt);
  const rows=ps.flatMap(p=>kkMetList(p).map(m=>({p,m})));
  s.innerHTML=HD('Kertas Kerja Penaksiran','')+sec('Permohonan Siap Ditaksir','Satu permohonan menghasilkan satu kertas kerja untuk tiap metode (Pendekatan Pasar / Pendekatan Biaya) yang dipakai objeknya.')+(rows.length?`<div class="tw"><table><thead><tr><th>No</th><th>Permohonan</th><th>Tanggal</th><th>Metode</th><th>Jumlah Objek</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows.map(({p,m},i)=>`<tr><td>${i+1}</td><td>${p.no}</td><td>${fd(p.tgl)}</td><td>${KKM[m]}</td><td>${p.o.filter(o=>kkMet(o)==m).length}</td><td>${kkDone(p,m)?PL('s-g','Selesai'):PL('s-o','Proses Taksir')}</td><td><button class="btn sm" data-kk="${p.id}:${m}">Buka</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada permohonan Posted','Posting permohonan dari Daftar Objek Penaksiran.'))+'</div>';
  s.onclick=e=>{const b=e.target.closest('[data-kk]');if(b){obCur=b.dataset.kk;pgKk()}}}
@@ -414,7 +473,7 @@ function pgRf(){const s=$('#rf'),g={};HP.forEach(x=>(g[x.l]=g[x.l]||{l:x.l,kt:x.
   $('#r_f').onchange=e=>{RF[rfCur]=(RF[rfCur]||[]).concat([...e.target.files].map(f=>URL.createObjectURL(f)));pgRf()};s.onclick=e=>{if(e.target.closest('[data-a]')){rfCur=null;pgRf()}};return}
  s.innerHTML=HD('Referensi Penaksiran','')+sec('Daftar Referensi Lapak / Pengepul','')+(r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Lapak / Pengepul</th><th>Kontak</th><th>Area / Wilayah</th><th>Alamat / Maps </th><th>Data Harga</th><th>Gambar Survei</th><th>Aksi</th></tr></thead><tbody>${r.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.l)}</b></td><td>${esc(x.kt)}</td><td>${esc(x.a)}</td><td>${esc(x.al)}</td><td>${x.n} data</td><td>${(RF[x.l]||[]).length} gambar</td><td><button class="btn sm" data-rf="${esc(x.l)}">Dokumentasi</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada lapak','Lapak muncul otomatis setelah ada data Harga Pembanding.'))+'</div>';
  s.onclick=e=>{const b=e.target.closest('[data-rf]');if(b){rfCur=b.dataset.rf;pgRf()}}}
-/* Tabel Data Master */
+/* Menu Data Master*/
  const DM = [
   {kode:'1918171615', n:'Andrea anastasya', JS:'Pemindahtanganan' },
   {kode:'1918171615', n:'Arasya alfaira', JS:'Pemindahtanganan' },
@@ -445,7 +504,7 @@ function pgDm(){
 show=function(v,b){svCur=penCur=psjCur=tksCur=tksAdminCur=obCur=obEd=rfCur=null;hpAdd=false;_s2(v,b);if(PG[v])PG[v]()};
 $$('.nav').forEach(n=>n.onclick=()=>show(n.dataset.v,n));
 
-/* Menu-menu Verifikasi */
+
 let editPending=false,admCur=null,admRO=false,admPgV=1;
 function cfm(t,m,ok,okTxt,only){let o=$('#mdl');if(!o){o=document.createElement('div');o.id='mdl';o.className='mdl';o.innerHTML='<div class="mbx"><h3></h3><p></p><div class="mft"><button class="btn o" data-x="0">Batal</button><button class="btn" data-x="1"></button></div></div>';document.body.appendChild(o)}
  o.querySelector('h3').textContent=t;o.querySelector('p').textContent=m;o.querySelector('[data-x="1"]').textContent=okTxt||'OK';o.classList.add('on');o.querySelector('[data-x="1"]').classList.toggle('dng',/hapus|tolak/i.test(okTxt||''));
@@ -455,8 +514,8 @@ function rmClose(){const m=$('.rmn');if(m)m.remove()}
 function rowMenu(i,btn){rmClose();const d=R[i],r=btn.getBoundingClientRect(),m=document.createElement('div');m.className='rmn';
  m.innerHTML=`<button data-m="h">Lihat Riwayat</button>${bolehTulis(d)&&d[6]=='Draft'?'<button data-m="x" class="dg">Hapus Draft</button>':''}`;m.style.left=Math.max(8,r.right-170)+'px';document.body.appendChild(m);const h=m.offsetHeight;m.style.top=(r.bottom+6+h>innerHeight?Math.max(8,r.top-h-6):r.bottom+6)+'px';
  m.onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;rmClose();if(b.dataset.m=='h')detail(i,R,2);else if(!bolehTulis(d))deny();else cfm('Hapus draft?','Draft '+d[0]+' akan dihapus permanen.',()=>{R.splice(i,1);delete RX[d[0]];fl();toast('Draft dihapus.')},'Hapus')}}
-/* Surat Permohonan (dibuat otomatis, berdasarkan input pengguna barang (kayak generate gitu)) */
-function genRow(ok){const u=$('.upl.gen');if(!u)return;u.classList.toggle('y',ok);$('#gtx').textContent=ok?SURAT_DOCX_NAME+' · dibuat otomatis dari isian formulir (format Word)':'Dibuat otomatis setelah nomor dan tanggal surat terisi.';$('#gp').disabled=!ok}
+
+ function genRow(ok){const u=$('.upl.gen');if(!u)return;u.classList.toggle('y',ok);$('#gtx').textContent=ok?SURAT_DOCX_NAME+' · dibuat otomatis dari isian formulir (format Word)':'Dibuat otomatis setelah nomor dan tanggal surat terisi.';$('#gp').disabled=!ok}
 function collect(){const up=$$('.upl'),f={jn:$('input[name=jn]:checked').value,no:$('#fn').value.trim(),tgl:$('#fd').value,pd:$('#fpd').value,pf:$('#fp2').value.trim(),kepala:$('#fkp').value.trim(),nip:$('#fnip').value.trim(),alamat:$('#fal').value.trim(),kib:$$('.kb:checked').map(x=>+x.dataset.k)};
  f.docs=up.map((u,k)=>{if(k==0)return suratSiap(f)?SURAT_DOCX_NAME:'';const g=u.querySelector('input[type=file]').files[0];return g?g.name:(u.classList.contains('y')?(u.dataset.nm||'dokumen.pdf'):'')});
  f.files=up.map((u,k)=>k==0?null:(u._file||null));
@@ -464,11 +523,8 @@ function collect(){const up=$$('.upl'),f={jn:$('input[name=jn]:checked').value,n
 function rowFrom(f,s){const ks=f.kib.map(i=>K[i]),t=new Date(f.tgl||Date.now());return[f.no,f.pd,ks.length?ks[0][2]+(ks.length>1?` +${ks.length-1} lainnya`:''):'-',ks.length?ks[0][1]:'-',f.jn,t.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}),s,ks.length?ks[0][3]:'-','-',ks.length?ks[0][4]:'-',f.pf||'-',f.docs.filter(Boolean).length+' file',ks.length?'B':'-']}
 function missing(f){const m=[],dn=['Surat Permohonan','Surat Kajian / BA Penelitian','Surat Perintah','Surat Pernyataan'];if(!f.no)m.push('Nomor surat');if(!f.tgl)m.push('Tanggal surat');if(!f.pf)m.push('Perihal');f.docs.forEach((x,i)=>{if(!x&&i>0)m.push(dn[i])});if(!f.kib.length)m.push('Barang KIB');return m}
 function resetForm(){editNo=null;$$('.rjn').forEach(x=>x.remove());$('#ff').reset();$$('.upl:not(.gen)').forEach(u=>{u._file=null;u.classList.remove('y');u.dataset.nm='';u.querySelector('small').textContent='PDF, maksimal 5 MB';u.querySelector('.bt').firstChild.textContent='Pilih File'});$('#fal').value=alamatOpdTerakhir($('#fpd').value||(CUR&&CUR.opd));sum()}
-/* Alamat Perangkat Daerah terakhir yang pernah diisi OPD ini (untuk mengisi otomatis permohonan baru) */
-/* Alamat Perangkat Daerah yang diinput Pengguna Barang pada permohonan awal */
 function alamatPermohonan(no){return((RX[no]||{}).f||{}).alamat||''}
 function alamatOpdTerakhir(pd){const d=R.find(r=>r[1]==pd&&((RX[r[0]]||{}).f||{}).alamat);return d?RX[d[0]].f.alamat:''}
-/* selisih form lama dengan form baru (untuk hitung data realnya berapa). */
 function diffForm(a,b){const c=[],dn=['Surat Permohonan','Surat Kajian','Surat Perintah','Surat Pernyataan'];a=a||{docs:[],kib:[]};
  if(a.jn&&a.jn!==b.jn)c.push('Jenis ('+a.jn+' → '+b.jn+')');
  if(a.no&&a.no!==b.no)c.push('Nomor ('+a.no+' → '+b.no+')');
@@ -517,17 +573,15 @@ function formMode(){const e=!!editNo,d=e?R.find(x=>x[0]==editNo):null;const rv=!
 const _s3=show;show=function(v,b){if(v=='form'){if(!editPending)resetForm()}else editNo=null;const keep=editPending;editPending=false;admCur=null;_s3(v,b);if(v=='form'&&!keep)formMode()};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-ed],[data-vf],[data-wd],[data-mn]');if(!b){if(!e.target.closest('.rmn'))rmClose();return}
  if(b.dataset.ed!=null)return editRow(+b.dataset.ed);if(b.dataset.vf!=null)return ajukan(+b.dataset.vf);if(b.dataset.wd!=null)return tarik(+b.dataset.wd);if(b.dataset.mn!=null)return rowMenu(+b.dataset.mn,b)});
-/* Pratinjau dokumen */
-/* Validasi dokumen oleh Admin, disimpan di RX[no], chk[i]:
-   Nilai lama berupa true (versi centang) dianggap 'ok'. */
+
 const cv=v=>v===true||v==='ok'?'ok':v==='no'?'no':'';
 const chkC=(no,t)=>[0,1,2,3].filter(i=>cv(((RX[no]||{}).chk||[])[i])==t).length;
 const chkN=no=>chkC(no,'ok');
-/* Keterangan penolakan per dokumen: RX[no].cn[i] (wajib bila chk[i]=='no'), ditampilkan ke Pengguna Barang. */
+
 const cnList=no=>{const x=RX[no]||{},f=x.f||{docs:[]},ck=x.chk||[],cn=x.cn||[];return DOCN.map((n,i)=>[i,n,String(cn[i]||'').trim()]).filter(([i,n,t])=>(f.docs||[])[i]&&cv(ck[i])=='no'&&t)};
 const cnRej=no=>{const x=RX[no]||{},f=x.f||{docs:[]},ck=x.chk||[];return[0,1,2,3].filter(i=>(f.docs||[])[i]&&cv(ck[i])=='no')};
 const sigDoc=(f,i)=>i==0?'gen|'+suratSig(f):(f.docs[i]||'')+'|'+(((f.files||[])[i]||{}).size||0);
-/* Logic Verifikasi Barang oleh Admin: RX[no].kv[kIndex]='ok'|'no', RX[no].kn[kIndex]=keterangan. */
+
 const kvV=(no,q)=>{const v=((RX[no]||{}).kv||{})[q];return v=='ok'||v=='no'?v:''},kvN=(no,q)=>String(((RX[no]||{}).kn||{})[q]||''),
  kvIdx=no=>((RX[no]||{}).f||{}).kib||[],kbRej=no=>kvIdx(no).filter(q=>kvV(no,q)=='no');
 const kvSumHtml=no=>{const a=kvIdx(no),ok=a.filter(q=>kvV(no,q)=='ok').length,no_=a.filter(q=>kvV(no,q)=='no').length;return `<span><b>${ok+no_}/${a.length}</b>Barang diperiksa</span><span><b>${ok}</b>Sesuai</span><span><b>${no_}</b>Ditolak</span>`};
@@ -551,7 +605,7 @@ function pvOpen(no,k){const d=R.find(r=>r[0]==no);if(!d||!own(d))return deny();c
  document.body.appendChild(m)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-pvo]');if(b)pvOpen(b.dataset.no,+b.dataset.pvo)});
 document.addEventListener('keydown',e=>{if(e.key=='Escape')pvClose()});
-/* Pratinjau Surat Permohonan Otomatis dari input (pengguna barang) */
+
 async function pvGen(){const f=collect();if(!suratSiap(f))return toast('Isi nomor dan tanggal surat dulu.');
  let b;const tt=ttdSah(editNo||f.no,f);try{b=await suratPermohonanDocx(f,tt)}catch(er){return toast('Gagal membuat Surat Permohonan: '+er.message)}
  pvClose();pvUrl=URL.createObjectURL(b);const nm='Surat Permohonan - '+f.no.replace(/[\\/:*?"<>|]+/g,'-')+'.docx';
@@ -559,17 +613,17 @@ async function pvGen(){const f=collect();if(!suratSiap(f))return toast('Isi nomo
  m.innerHTML=`<div class="pvb" role="dialog" aria-modal="true" aria-label="Pratinjau surat permohonan"><div class="pvh"><div><b>Surat Permohonan (otomatis)</b><small class="mt">${esc(f.no)} · ${esc(f.pd)}</small></div><div class="pva"><a class="btn o sm" href="${pvUrl}" download="${esc(nm)}">Unduh Word</a><button type="button" class="btn sm" data-pv="x">Tutup</button></div></div><div class="pvf srt-wrap">${suratHtml(f,tt)}</div><div class="pvn mt"></div></div>`;
  m.onclick=e=>{if(e.target===m||e.target.closest('[data-pv=x]'))pvClose()};document.body.appendChild(m)}
 $('#gp').onclick=pvGen;
-/* Template Contoh (Surat Kajian / Surat Pernyataan): hanya dilihat formatnya dan diunduh; tidak dibuat otomatis. */
+
 const TPL={kajian:{t:'Surat Kajian / BA Penelitian',f:'Surat_Kajian_Penelitian',nm:'Template Surat Kajian Penelitian.docx'},pernyataan:{t:'Surat Pernyataan',f:'Surat_Pernyataan',nm:'Template Surat Pernyataan.docx'}};
 function tplOpen(k){const t=TPL[k];if(!t)return;pvClose();
  const m=document.createElement('div');m.id='pvm';m.className='pvm';
  m.innerHTML=`<div class="pvb" role="dialog" aria-modal="true" aria-label="Contoh format ${esc(t.t)}"><div class="pvh"><div><b>Contoh Format: ${esc(t.t)}</b><small class="mt">Template untuk diunduh, diisi, lalu diunggah kembali sebagai PDF</small></div><div class="pva"><a class="btn sm" href="assets/template/${t.f}.docx" download="${esc(t.nm)}">Unduh Template (.docx)</a><a class="btn o sm" href="assets/template/${t.f}.pdf" target="_blank" rel="noopener">Tab baru</a><button type="button" class="btn o sm" data-pv="x">Tutup</button></div></div><iframe class="pvf" src="assets/template/${t.f}.pdf" title="Contoh format ${esc(t.t)}"></iframe><div class="pvn mt">Isi data sesuai permohonan Anda mengikuti format berikut.</div></div>`;
  m.onclick=e=>{if(e.target===m||e.target.closest('[data-pv=x]'))pvClose()};document.body.appendChild(m)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-tpl]');if(b){e.preventDefault();tplOpen(b.dataset.tpl)}});
-/* js Admin */
+
 function pgAdm(){if(!can('verifikasi'))return;const s=$('#adm'),r=R.map((d,i)=>[d,i]).filter(([d])=>d[6]=='Menunggu Verifikasi');
  if(admCur!=null&&R[admCur]){const d=R[admCur],x0=RX[d[0]]||{},ro=d[6]!='Menunggu Verifikasi',ada=!!x0.f,f=x0.f||{docs:[],kib:[]},ks=(f.kib||[]).map(i=>K[i]);admRO=ro;
-  /* hasil verifikasi (mode lihat): diambil dari riwayat, atau disimpulkan dari status untuk data contoh */
+ 
   const hv=[...(x0.h||[])].reverse().find(h=>/^(Diterima Admin|Ditolak oleh Admin)/.test(h.a)),tolak=d[6]=='Ditolak',
    hasil=ro?`<dl><dt>Keputusan</dt><dd>${PL(tolak?'s-r':'s-g',tolak?'Ditolak':'Diterima')}</dd><dt>Tanggal Verifikasi</dt><dd>${hv?hv.t:'-'}</dd><dt>Status Saat Ini</dt><dd>${st(d[6])}</dd><dt>Catatan untuk Pemohon</dt><dd>${esc((tolak?x0.cat:hv&&hv.n)||'-')}</dd></dl>`:'';
   s.innerHTML=HD(ro?'Hasil Verifikasi':'Verifikasi Permohonan',d[0]+' · '+d[1],`<button class="btn o" data-a="bk">← Kembali</button>`)+sec('Ringkasan Permohonan',ro?'Permohonan ini sudah diverifikasi. Tampilan hanya untuk dilihat.':'',st(d[6]))+`<dl><dt>Jenis</dt><dd>${d[4]}</dd><dt>Tanggal Surat</dt><dd>${d[5]}</dd><dt>Perangkat Daerah</dt><dd>${d[1]}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd></dl></div>`+
@@ -593,7 +647,7 @@ function pgAdm(){if(!can('verifikasi'))return;const s=$('#adm'),r=R.map((d,i)=>[
    const x=RX[d[0]]=RX[d[0]]||{h:[]};if(k=='Terima'){d[6]='Dalam Proses';x.cat='';hs(d[0],'Diterima Admin, lanjut ke Survei Lapangan',c)}else{d[6]='Ditolak';x.cat=c;x.rj=[0,1,2,3].map(i=>sigDoc(f,i));hs(d[0],'Ditolak oleh Admin',c+(ti.length?' · '+ti.map(i=>DOCN[i]+': '+String(cn[i]).trim()).join(' · '):'')+(kr.length?' · Barang: '+kr.map(q=>K[q][2]+': '+kvN(d[0],q).trim()).join(' · '):''))}
    toast(k=='Terima'?'Permohonan diterima dan masuk ke Survei Lapangan.':'Permohonan ditolak.');admCur=null;fl();pgAdm()};return}
  admRO=false;
- /* Permohonan yang sudah diputuskan Admin: Diterima (Dalam Proses / Disetujui) atau Ditolak */
+
  const vr=R.map((d,i)=>[d,i]).filter(([d])=>['Dalam Proses','Disetujui','Ditolak'].includes(d[6])),PS=5,np=Math.max(1,Math.ceil(vr.length/PS));admPgV=Math.min(Math.max(1,admPgV),np);
  const vp=vr.slice((admPgV-1)*PS,admPgV*PS);
  s.innerHTML=HD('Verifikasi Permohonan','')+ALR('Alur:','Permohonan diajukan pemohon &rarr; Admin memeriksa kelengkapan &rarr; terima (lanjut Survei Lapangan), minta revisi, atau tolak.')+sec('Permohonan Menunggu Verifikasi','menunggu Verifikasi',`<span class="stt s-b">${r.length} Permohonan</span>`)+(r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Pemohon</th><th>Dokumen</th><th>Aksi</th></tr></thead><tbody>${r.map(([d,i],k)=>`<tr><td>${k+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${d[11]}</td><td><button class="btn sm" data-ad="${i}">Periksa</button></td></tr>`).join('')}</tbody></table></div>`:EM('Tidak ada permohonan menunggu','Permohonan yang diajukan pemohon akan muncul di sini.'))+'</div>'+
@@ -604,9 +658,9 @@ function dash(){const v=R.map((d,i)=>[d,i]).filter(([d])=>own(d)),c=x=>v.filter(
  $('#dsw').textContent=c('Menunggu Verifikasi');$('#dsp').textContent=c('Dalam Proses');$('#dss').textContent=c('Disetujui');
  $('#t1').innerHTML=v.slice(0,5).map(([d,i])=>`<tr><td class="dp" style="font-weight:700">${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[4]}</td><td>${d[5]}</td><td>${st(d[6])}</td><td><button class="db" data-r="${i}">Detail</button></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--mt);padding:26px">Belum ada permohonan.</td></tr>'}
  const _f2=fl;fl=function(){_f2();const n=R.filter(d=>d[6]=='Menunggu Verifikasi').length;$('#admc').textContent=n;const bb=$('#bellBtn b');bb.textContent=n;bb.style.display=n?'':'none';dash()};
-/* Penjaga akses: dipasang paling luar, semua jalur pindah halaman lewat sini. */
+
 const _s4=show;show=function(v,b){if(!CUR)return;if(v!='det')detCur=null;if(v=='list'&&!canView('list')){v='dash';b=null}if(!canView(v)){toast('Anda tidak memiliki akses ke halaman tersebut.');v='dash';b=null}_s4(v,b)};
-/*  Logic biar bisa double tab tanpa harus logout */
+
 const viewNow=()=>{const v=$('.vw.on');return v?v.id:''};
 function terapkanRemote(o){
  const lama=new Map(R.map(d=>[d[0],d[6]])),
@@ -615,7 +669,7 @@ function terapkanRemote(o){
   detRow=detCur?R.find(d=>d[0]==detCur.no):null,detRX=detCur?RX[detCur.no]:null;
  Store.apply(o);
  if(!CUR)return;
- const m=$('#mdl');if(m&&m.classList.contains('on'))m.classList.remove('on');rmClose();   /* dialog lama memegang data lama */
+ const m=$('#mdl');if(m&&m.classList.contains('on'))m.classList.remove('on');rmClose();  
  admCur=admNo==null?null:R.findIndex(d=>d[0]==admNo);if(admCur<0)admCur=null;
  fl();
  const v=viewNow();
@@ -640,7 +694,7 @@ function terapkanRemote(o){
  if(b)toast(isAdmin()?(!lama.has(b[0])||lama.get(b[0])=='Draft'?'Permohonan baru masuk: '+b[0]+' ('+b[1]+')':'Status '+b[0]+' berubah: '+b[6]):'Status '+b[0]+' kini: '+b[6])}
 Store.onRemote(terapkanRemote,()=>location.reload());
 /* Start: muat data bersama (atau simpan data awal bila belum ada). lalu pilihkan sesi tab ini */
-Store.init({R,RX,SVS,PEN,OB,KK,HP},a=>samplePdf(a[0],a[1]),'seed-2026-11-20').then(()=>{
+Store.init({R,RX,SVS,PEN,OB,KK,HP},a=>samplePdf(a[0],a[1]),'seed-2026-11-21-kkap').then(()=>{
  Store.watch();
  const tq=location.search.match(/[?&]ttd=([\w-]+)/);if(tq){ttdPage(tq[1]);return}
  if(CUR)fl();else{const a=loadSession();if(a)masuk(a);else $('#lu').value=lastEmail()}});
