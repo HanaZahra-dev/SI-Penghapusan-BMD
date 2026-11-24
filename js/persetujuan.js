@@ -304,7 +304,7 @@ function psjForm(s) {
     ptSec('Input Dokumen Persetujuan', 'Persetujuan Kepala Daerah mengikuti jenis permohonan yang diajukan.',
       `<div class="ff">${PSJ_ORD[j].map(fld).join('')}</div><div class="psj-act"><button type="button" class="btn o" data-a="draft">Simpan Draft Persetujuan</button><button type="button" class="btn" data-a="simpan">Selesaikan Dokumen Persetujuan</button></div>`) +
     `<datalist id="psj_dl_t">${tujSaran.map(x => `<option value="${esc(x)}">`).join('')}</datalist><datalist id="psj_dl_b">${bmdSaran.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` +
-    ptSec('Pratinjau Surat Persetujuan', 'Isi pratinjau mengikuti isian di atas dan template surat Word.', `<div class="pt-bar"><button class="btn o sm" data-a="prev">Perbarui Pratinjau</button><button class="btn o sm" data-a="print">Cetak / Simpan PDF</button><button class="btn sm" data-a="docx">Unduh Word (.docx)</button></div><div class="pt-prev"><div class="bap" id="p_prev"></div></div>`);
+    ptSec('Pratinjau Surat Persetujuan', 'Isi pratinjau', `<div class="pt-bar"><button class="btn o sm" data-a="prev">Perbarui Pratinjau</button><button class="btn o sm" data-a="print">Cetak / Simpan PDF</button><button class="btn sm" data-a="docx">Unduh Word (.docx)</button></div><div class="pt-prev"><div class="bap" id="p_prev"></div></div>`);
   if (!$('#psj_css')) { const c = document.createElement('style'); c.id = 'psj_css'; c.textContent = PSJ_CSS; document.head.appendChild(c); }
   let autoT = def.tujuan;
   psjRender(j);
