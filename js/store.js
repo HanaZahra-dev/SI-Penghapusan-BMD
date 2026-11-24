@@ -31,7 +31,7 @@ const Store = (() => {
   }
   const rep = (k, v) => (k === 'files' && Array.isArray(v)) ? v.map(meta) : v;
   /* OB = Daftar Objek Penaksiran, KK = Kertas Kerja, HP = Harga Pembanding (opsional: hanya disimpan bila diberikan ke init) */
-  const ser = () => JSON.stringify({ R: state.R, RX: state.RX, SVS: state.SVS, PEN: state.PEN, OB: state.OB, KK: state.KK, HP: state.HP }, rep);
+  const ser = () => JSON.stringify({ R: state.R, RX: state.RX, SVS: state.SVS, PEN: state.PEN, OB: state.OB, KK: state.KK, HP: state.HP, PJ: state.PJ, SKN: state.SKN }, rep);
   const same = (a, b) => JSON.stringify(a, rep) === JSON.stringify(b, rep);
 
   /* Logic Untuk Simpan  */
@@ -79,11 +79,22 @@ const Store = (() => {
         catch (e) { return null; }
       }));
     }
+    /* Modul 3: berkas unggahan (kunci 'files') dipulihkan dari IndexedDB */
+    const pulih = async v => {
+      if (!v || typeof v != 'object') return;
+      if (Array.isArray(v.files)) v.files = await Promise.all(v.files.map(async m => {
+        if (!m) return null;
+        if (cache.has(m.id)) return cache.get(m.id);
+        try { const b = await get(m.id); if (b) { b._fid = m.id; cache.set(m.id, b); } return b || null; } catch (e) { return null; }
+      }));
+      for (const k of Object.keys(v)) if (k != 'files') await pulih(v[k]);
+    };
+    await pulih(o.PJ);
     return o;
   }
 
   function apply(o) {
-    const { R, RX, SVS, PEN, OB, KK, HP } = state;
+    const { R, RX, SVS, PEN, OB, KK, HP, PJ, SKN } = state;
     const byNo = new Map(R.map(d => [d[0], d]));
     const rows = (o.R || []).map(d => { const old = byNo.get(d[0]); return old && same(old, d) ? old : d; });
     R.length = 0; R.push(...rows);
@@ -96,6 +107,10 @@ const Store = (() => {
     if (OB && Array.isArray(o.OB)) { OB.length = 0; OB.push(...o.OB); }
     if (HP && Array.isArray(o.HP)) { HP.length = 0; HP.push(...o.HP); }
     if (KK && o.KK && typeof o.KK == 'object') { Object.keys(KK).forEach(k => delete KK[k]); Object.assign(KK, o.KK); }
+    /* Modul 3 (Penjualan): hanya ditimpa bila ada di data tersimpan */
+    if (PJ && o.PJ && typeof o.PJ == 'object') { Object.keys(PJ).forEach(k => delete PJ[k]); Object.assign(PJ, o.PJ); }
+    /* Modul 2 (SK Nilai Limit): hanya ditimpa bila ada di data tersimpan */
+    if (SKN && o.SKN && typeof o.SKN == 'object') { Object.keys(SKN).forEach(k => delete SKN[k]); Object.assign(SKN, o.SKN); }
     last = ser();    // tidak redudansi data
   }
 

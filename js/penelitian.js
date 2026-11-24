@@ -68,7 +68,6 @@ function ptLev(a, b) {
   for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1)); p = c; }
   return p[n];
 }
-/* Ubah baris Excel menjadi data acuan: pasangan anggota tidak tetap per OPD + saran Nama BMD */
 function ptMMBuild(aoa) {
   const nz = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim(), nipN = s => String(s == null ? '' : s).replace(/\D/g, '');
   const hi = aoa.findIndex(r => (r || []).some(c => /^nama bmd$/i.test(nz(c))));
@@ -102,8 +101,6 @@ function ptMMBuild(aoa) {
   return { mm: [...pairs.values()], bmd: out.map(x => x.v), variants, baris: data.length };
 }
 
-/* Data bawaan: contoh dari file mail_merge yang udah diunggah
-   Dapat diganti kapan saja lewat tombol "Impor Excel" di halaman Penelitian Tim Penghapusan. */
 const PT_MM0 = [
   ["Abdul Wahid, S.Ag.,M.Si", "197609072009011006", "Abyan Ikbar Rafif A.Md.M", "200108122023021001", ["Badan Pendapatan Daerah Kota Bogor"]],
   ["dr. Erna Nuraena", "197311112002122002", "Indah Rahmawati Puspanegara, A.Md.Pk", "198606082011012001", ["Rumah Sakit Umum Daerah Kota Bogor - Dinas Kesehatan", "Dinas Kesehatan Kota Bogor"]],
@@ -143,11 +140,8 @@ function ptMMSimpan(d, info) {
 function ptMMReset() { PT_MM = PT_MM0; PT_BMD = PT_BMD0; PT_MMI = PT_MMI0; try { localStorage.removeItem(PT_MM_KEY); } catch (e) { /* abaikan */ } }
 const ptOpdKey = x => String(x || '').toLowerCase().replace(/kota bogor/g, '').replace(/\s+/g, ' ').trim();
 const ptMMFor = opd => { const k = ptOpdKey(opd); for (let i = PT_MM.length - 1; i >= 0; i--) if (PT_MM[i][4].some(o => ptOpdKey(o) == k)) return PT_MM[i]; return null; };
-/* NIP ditulis tanpa awalan "NIP." */
 const ptNip = x => String(x == null ? '' : x).replace(/^\s*NIP\.?\s*/i, '').replace(/\s+/g, '');
-const ptMem = {};   // Isian Form tetap (walaupun pindah menu, tapi tetap tetap))
-
-/* tangga  */
+const ptMem = {};   
 const ptSat = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
 function ptSebut(n) {
   if (n < 12) return ptSat[n];
@@ -162,26 +156,21 @@ const ptD = iso => { if (!iso) return null; const d = new Date(iso + 'T00:00:00'
 const ptTerbaca = iso => { const d = ptD(iso); return d ? `${PT_HARI[d.getDay()]} tanggal ${ptSebut(d.getDate())} ${PT_BLN[d.getMonth()].toLowerCase()} ${ptSebut(d.getFullYear())}` : ''; };
 const ptKal = iso => { const d = ptD(iso); return d ? `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}` : ''; };
 const ptLong = iso => { const d = ptD(iso); return d ? `${String(d.getDate()).padStart(2, '0')} ${PT_BLN[d.getMonth()]} ${d.getFullYear()}` : ''; };
-/* "22 Sep 2026" -> "22 September 2026" (format Excel: hari 2 digit, bulan lengkap) */
 const ptTglTeks = t => { const m = String(t || '').trim().match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/); if (!m) return String(t || ''); const b = PT_BLN.find(x => x.toLowerCase().startsWith(m[2].toLowerCase().slice(0, 3))); return b ? `${m[1].padStart(2, '0')} ${b} ${m[3]}` : String(t); };
 const ptSlash = iso => { const d = ptD(iso); return d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'; };
-
-/* Data  */
 function ptItems(no) {
   const S = SVS[no] || {};
-  return K.slice(0, 3).map((x, i) => {
-    const t = (S.d && S.d.it && S.d.it[i]) || {};
+  const rows = permKib(no);
+  return rows.map((x, i) => {
+    const t = svResultFor(S.d, x, i, rows);
     return { id: x[0], kode: x[1], nama: x[2], thn: x[3], kond: x[4], qty: x[5], sat: x[6], rb: t.c || '', ms: t.m || '', ket: t.k || '' };
   });
 }
-/* Jenis permohonan hanya 2: Pemindahtanganan / Izin Bongkar*/
 const ptJenis = d => (!d[4] || d[4] === 'Penghapusan') ? 'Izin Bongkar' : d[4];
-/* Nama BMD terkunci mengikuti jenis permohonan (tidak bisa diubah; ganti jenis = ajukan ulang). Jenis Proses boleh memilih salah satu atau keduanya */
 const PT_OPT_PROSES = ['Pemindahtanganan', 'Izin Bongkar'];
 const PT_PROSES_LAMA = { 'Penjualan': 'Pemindahtanganan', 'Izin Bongkar dan Penjualan': 'Izin Bongkar dan Pemindahtanganan' };
-/* Perihal surat permohonan mengikuti jenis permohonan yang diajukan (Izin Bongkar / Pemindahtanganan) */
+
 const ptPerihalDef = d => ptJenis(d);
-/* Gabungkan default dengan data tersimpan: isian kosong tidak menimpa data dari permohonan/survei */
 function ptMerge(def, d, ...src) {
   const ff = (RX[d[0]] || {}).f || {}, legacy = [ff.pf, d[10], 'Izin Bongkar', 'Pemindahtanganan', 'Penghapusan', 'Permohonan Usulan Izin Bongkar dan Penaksiran', 'Permohonan Usulan Pemindahtanganan dan Penaksiran'];
   const o = Object.assign({}, def);
@@ -189,8 +178,8 @@ function ptMerge(def, d, ...src) {
     let v = x[k];
     if (k == 'proses' && PT_PROSES_LAMA[v]) v = PT_PROSES_LAMA[v];
     if (v == null || String(v).trim() === '') return;
-    if (k == 'perihal' && legacy.includes(v) && v !== def.perihal) return;   // perihal lama (teks bebas) diganti mengikuti jenis
-    if (k == 'bmd' && ['Izin Bongkar', 'Pemindahtanganan', 'Penghapusan'].includes(v)) return;   // nilai otomatis lama
+    if (k == 'perihal' && legacy.includes(v) && v !== def.perihal) return;   
+    if (k == 'bmd' && ['Izin Bongkar', 'Pemindahtanganan', 'Penghapusan'].includes(v)) return; 
     o[k] = v;
   }));
   return o;
@@ -211,7 +200,6 @@ const ptCollect = () => { const o = {}; ptFields.forEach(k => { const e = $('#b_
 const ptMissing = f => PT_REQ.filter(([k]) => !String(f[k] || '').trim()).map(x => x[1]);
 const ptStat = no => { const p = PEN[no]; return !p || !p.f ? ['s-n', 'Belum disusun'] : p.st == 'Final' ? ['s-g', 'Tersusun'] : ['s-o', 'Draft']; };
 
-/*  Halaman 1: Daftar Hasil Survei */
 function ptMMCard() {
   const i = PT_MMI, v = i.variants || [];
   const imp = ptImp ? `<div class="pt-imp"><b>Hasil pembacaan: ${esc(ptImp.info.src)}</b><p class="mt">Lembar “${esc(ptImp.sheet)}”: ${ptImp.d.baris} baris data, <b>${ptImp.d.mm.length}</b> pasangan anggota tidak tetap, <b>${ptImp.d.bmd.length}</b> saran Nama BMD.</p>${ptImp.d.variants.length ? `<p class="mt">Penulisan nama berbeda untuk NIP yang sama (yang dipakai ditandai):</p><ul>${ptImp.d.variants.map(x => `<li><b>${esc(x.dipakai)}</b> (NIP ${esc(x.nip)}) variasi lain: ${x.lain.map(esc).join('; ')}</li>`).join('')}</ul>` : ''}<div class="pt-bar"><button class="btn sm" data-mm="apply">Terapkan data ini</button><button class="btn o sm" data-mm="cancel">Batal</button></div></div>` : '';
@@ -221,30 +209,33 @@ function ptMMCard() {
     `<p class="mt" style="margin:8px 0 0;font-size:12px">Format Excel: baris judul harus memuat kolom Nama BMD, Anggota Tidak Tetap 1, NIP 1, Anggota Tidak tetap 2, NIP 2, dan OPD Pemohon.</p></div>`;
 }
 
-/* Aksi BA TTD setelah berkas diunggah: lihat, edit (nonaktif bila selesai), menu lainnya */
 const PT_IC = {
   eye: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   pen: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
   dots: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>'
 };
 PT_IC.trash = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
-const ptBaIcons = (no, done) => `<div class="ic-g"><button type="button" class="ic-b" data-bv="${esc(no)}" title="Lihat / preview BA TTD" aria-label="Lihat BA TTD">${PT_IC.eye}</button>` +
-  `<button type="button" class="ic-b" data-be="${esc(no)}" title="${done ? 'Sudah selesai, tidak dapat diedit' : 'Edit (ganti berkas)'}" aria-label="Edit BA TTD"${done ? ' disabled' : ''}>${PT_IC.pen}</button>` +
-  `<button type="button" class="ic-b dg" data-bd="${esc(no)}" title="${done ? 'Sudah selesai, tidak dapat dihapus' : 'Hapus BA TTD'}" aria-label="Hapus BA TTD"${done ? ' disabled' : ''}>${PT_IC.trash}</button></div>`;
+const ptBaLabel = k => k == 'psjBa'
+  ? { doc: 'Dokumen Persetujuan', lower: 'dokumen persetujuan', preview: 'Dokumen Persetujuan', finish: 'Selesaikan Dokumen Persetujuan' }
+  : { doc: 'BA TTD', lower: 'BA TTD', preview: 'BA TTD', finish: 'Selesaikan BA TTD' };
+const ptBaIcons = (no, done, k = 'ba') => { const l = ptBaLabel(k);
+  return `<div class="ic-g"><button type="button" class="ic-b" data-bv="${esc(no)}" title="Lihat / preview ${l.preview}" aria-label="Lihat ${l.preview}">${PT_IC.eye}</button>` +
+  `<button type="button" class="ic-b" data-be="${esc(no)}" title="${done ? 'Sudah selesai, tidak dapat diedit' : 'Edit (ganti berkas)'}" aria-label="Edit ${l.doc}"${done ? ' disabled' : ''}>${PT_IC.pen}</button>` +
+  `<button type="button" class="ic-b dg" data-bd="${esc(no)}" title="${done ? 'Sudah selesai, tidak dapat dihapus' : 'Hapus ' + l.doc}" aria-label="Hapus ${l.doc}"${done ? ' disabled' : ''}>${PT_IC.trash}</button></div>`;
+};
 
 function ptRows(r, q) {
   q = (q || '').toLowerCase().trim();
   const f = r.filter(d => !q || (d[0] + ' ' + d[1]).toLowerCase().includes(q));
   if (!f.length) return `<tr><td colspan="8" class="mt" style="text-align:center;padding:26px">${q ? 'Tidak ada hasil untuk pencarian tersebut.' : 'Belum ada survei yang selesai.'}</td></tr>`;
   return f.map((d, i) => {
-    const S = SVS[d[0]], st = ptStat(d[0]), n = +(S.d && S.d.jm) || (S.d && S.d.it && S.d.it.length) || 1;
+    const S = SVS[d[0]], st = ptStat(d[0]), n = permKib(d[0]).length;
     return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(d[4])}</td><td><b>${n}</b> objek</td><td>${ptSlash(S.tgl)}</td><td>${PL(st[0], st[1])}</td><td>${S.ba ? PL(S.ba.st == 'Selesai' ? 's-g' : 's-o', S.ba.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum upload</span>'}</td><td><div class="pt-ac"><button class="btn sm" data-pn="${esc(d[0])}">${st[1] == 'Belum disusun' ? 'Susun penelitian' : 'Lanjutkan penelitian'}</button>${S.ba ? ptBaIcons(d[0], S.ba.st == 'Selesai') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload BA TTD</button>`}</div></td></tr>`;
   }).join('');
 }
 function ptList(s) {
   const r = svRows().filter(d => SVS[d[0]].st == 'Selesai');
   s.innerHTML = HD('Penelitian Tim Penghapusan', '') +
-    `<div class="cs pt-sum"><div class="c3"><u><svg class="i"><use href="#c"></use></svg></u><div><small>Survei selesai</small><b>${r.length}</b><em class="tr up"><span>Menunggu penelitian</span></em></div></div><div class="c1"><u><svg class="i"><use href="#b"></use></svg></u><div><b class="tx"></b><em class="tr up"><span></span></em></div></div><div class="c2"><u><svg class="i"><use href="#f"></use></svg></u><div><small>Output</small><b class="tx">Berita Acara</b><em class="tr up"><span>Hasil dan rekomendasi tim</span></em></div></div></div>` +
     ptMMCard() +
     `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Hasil Survei</h2><small class="mt"></small></div><label class="sr2 pt-q"><svg class="i"><use href="#sq"></use></svg><input id="pt_q" placeholder="Cari nomor surat atau perangkat daerah…"></label></div>` +
     `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Usulan</th><th>Jumlah Objek</th><th>Tanggal Selesai</th><th>Status Penelitian</th><th>Status BA TTD</th><th>Aksi</th></tr></thead><tbody id="pt_tb">${ptRows(r, '')}</tbody></table></div></div>`;
@@ -272,7 +263,7 @@ function ptList(s) {
   };
 }
 
-/* Halaman 2: Form Susun Berita Acara */
+
 const ptIn = (k, l, v, ph, o = {}) => `<label class="l2${o.full ? ' full' : ''}">${l}` +
   (o.opt ? `<select id="b_${k}">${o.opt.map(x => `<option${x == v ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select>`
     : o.area ? `<textarea id="b_${k}" rows="${o.rows || 3}" placeholder="${esc(ph || '')}">${esc(v)}</textarea>`
@@ -344,10 +335,7 @@ function ptForm(s) {
 }
 function pgPt() { const s = $('#pt'); return penCur ? ptForm(s) : ptList(s); }
 
-/* Upload BA yang sudah ditandatangani (TTD) langsung di daftar 
-   Klik "Upload BA TTD" -> pilih berkas -> otomatis tersimpan (Draft). Lalu: lihat (preview), edit (ganti), hapus.
-   "Selesaikan BA TTD" ada di jendela preview; setelah Selesai semua tombol edit/hapus dikunci.
-   Data: SVS[no].ba = { n, ty, sz, img (data URL), ts, st: 'Draft' | 'Selesai' } */
+
 const PT_BA_MAX = 2 * 1024 * 1024;
 const ptSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 function ptBaBlobUrl(b) {
@@ -358,9 +346,9 @@ function ptBaBlobUrl(b) {
   } catch (e) { return b.img; }
 }
 const ptBaRe = () => ptList($('#pt'));
-function ptBaPick(no, re, k = 'ba') {   /* k: 'ba' = BA TTD Penelitian, 'psjBa' = BA TTD Persetujuan (dokumen berbeda) */
-  const S = SVS[no]; if (!S) return;
-  if (S[k] && S[k].st == 'Selesai') return toast('BA TTD sudah selesai dan tidak dapat diedit.');
+function ptBaPick(no, re, k = 'ba') {    const S = SVS[no]; if (!S) return;
+  const l = ptBaLabel(k);
+  if (S[k] && S[k].st == 'Selesai') return toast(l.doc + ' sudah selesai dan tidak dapat diedit.');
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/pdf,image/png,image/jpeg';
   inp.onchange = () => {
     const f = inp.files[0]; if (!f) return;
@@ -371,7 +359,7 @@ function ptBaPick(no, re, k = 'ba') {   /* k: 'ba' = BA TTD Penelitian, 'psjBa' 
       const T = SVS[no]; if (!T || (T[k] && T[k].st == 'Selesai')) return;
       const baru = !T[k];
       T[k] = { n: f.name, ty: f.type, sz: f.size, img: r.result, ts: nowStr(), st: 'Draft' };
-      Store.persist(); toast(baru ? 'BA TTD berhasil diunggah (Draft).' : 'Berkas BA TTD diganti.'); (re || ptBaRe)();
+      Store.persist(); toast(baru ? (k == 'psjBa' ? 'Draft Dokumen Persetujuan berhasil diunggah.' : l.doc + ' berhasil diunggah (Draft).') : 'Berkas ' + l.doc + ' diganti.'); (re || ptBaRe)();
     };
     r.readAsDataURL(f);
   };
@@ -379,30 +367,30 @@ function ptBaPick(no, re, k = 'ba') {   /* k: 'ba' = BA TTD Penelitian, 'psjBa' 
 }
 function ptBaDel(no, re, k = 'ba') {
   const S = SVS[no]; if (!S || !S[k]) return;
-  if (S[k].st == 'Selesai') return toast('BA TTD sudah selesai dan tidak dapat dihapus.');
-  cfm('Hapus BA TTD?', 'Berkas yang sudah diunggah akan dihapus.', () => { const U = SVS[no]; if (!U || (U[k] && U[k].st == 'Selesai')) return; delete U[k]; Store.persist(); toast('BA TTD dihapus.'); (re || ptBaRe)(); }, 'Hapus');
+  const l = ptBaLabel(k);
+  if (S[k].st == 'Selesai') return toast(l.doc + ' sudah selesai dan tidak dapat dihapus.');
+  cfm('Hapus ' + l.doc + '?', 'Berkas yang sudah diunggah akan dihapus.', () => { const U = SVS[no]; if (!U || (U[k] && U[k].st == 'Selesai')) return; delete U[k]; Store.persist(); toast(l.doc + ' dihapus.'); (re || ptBaRe)(); }, 'Hapus');
 }
 function ptBaPreview(no, re, k = 'ba') {
   const S = SVS[no]; if (!S || !S[k]) return;
-  const b = S[k], done = b.st == 'Selesai', url = ptBaBlobUrl(b), isImg = /^image\//.test(b.ty);
+  const b = S[k], done = b.st == 'Selesai', url = ptBaBlobUrl(b), isImg = /^image\//.test(b.ty), l = ptBaLabel(k);
   const old = $('#ba_md'); if (old) old.remove();
   const m = document.createElement('div'); m.id = 'ba_md'; m.className = 'bamd';
   m.innerHTML = `<div class="bamd-c" role="dialog" aria-modal="true"><div class="bamd-h"><div><b>${esc(b.n)}</b><small class="mt">${esc(ptSize(b.sz))} · ${esc(b.ts || '')} · ${done ? 'Selesai' : 'Draft'}</small></div><button type="button" class="ic-b" data-x="1" aria-label="Tutup">&times;</button></div>` +
     `<div class="bamd-b">${isImg ? `<img src="${esc(url)}" alt="${esc(b.n)}">` : `<iframe src="${esc(url)}" title="${esc(b.n)}"></iframe>`}</div>` +
-    `<div class="bamd-f"><a class="btn o" href="${esc(url)}" target="_blank" rel="noopener">Buka di tab baru</a>${done ? '<span class="mt">BA TTD sudah selesai dan dikunci.</span>' : '<button type="button" class="btn" data-fin="1">Selesaikan BA TTD</button>'}</div></div>`;
+    `<div class="bamd-f"><a class="btn o" href="${esc(url)}" target="_blank" rel="noopener">Buka di tab baru</a>${done ? '<span class="mt">' + esc(l.doc) + ' sudah selesai dan dikunci.</span>' : '<button type="button" class="btn" data-fin="1">' + esc(l.finish) + '</button>'}</div></div>`;
   document.body.appendChild(m);
   const close = () => { m.remove(); document.removeEventListener('keydown', esc_); if (url.startsWith('blob:')) URL.revokeObjectURL(url); };
   const esc_ = e => { if (e.key == 'Escape') close(); };
   document.addEventListener('keydown', esc_);
   m.onclick = e => {
     if (e.target === m || e.target.closest('[data-x]')) return close();
-    if (e.target.closest('[data-fin]')) cfm('Selesaikan BA TTD?', 'Berkas akan dikunci dan tidak dapat diedit atau dihapus lagi.', () => {
-      const U = SVS[no]; if (!U || !U[k]) return; U[k].st = 'Selesai'; U[k].ts = nowStr(); Store.persist(); close(); toast('BA TTD selesai dan dikunci.'); (re || ptBaRe)();
+    if (e.target.closest('[data-fin]')) cfm(l.finish + '?', 'Berkas akan dikunci dan tidak dapat diedit atau dihapus lagi.', () => {
+      const U = SVS[no]; if (!U || !U[k]) return; U[k].st = 'Selesai'; U[k].ts = nowStr(); Store.persist(); close(); toast(l.doc + ' selesai dan dikunci.'); (re || ptBaRe)();
     }, 'Selesai');
   };
 }
 
-/* Pratinjau (mengikuti teks template) */
 function ptPrevHtml(f, no) {
   const V = (k, l) => f[k] && String(f[k]).trim() ? esc(f[k]) : `<mark class="ph">[${l}]</mark>`,
     bmd = V('bmd', 'Nama BMD'), opd = V('opd', 'OPD Pemohon'),
@@ -426,14 +414,14 @@ function ptPrevHtml(f, no) {
     `<table class="bt sm"><thead><tr>${PT_LAMP_H.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${it.map((x, i) => `<tr>${ptLampRow(x, i).map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
 function ptRender() { const e = $('#b_prev'); if (e) e.innerHTML = ptPrevHtml(ptCollect(), penCur); }
-const PT_PAPER_CSS = `.bap{background:#fff;color:#000;font:13px/1.55 "Times New Roman",Times,serif;padding:34px 44px;text-align:justify}.bap h3{text-align:center;text-decoration:underline;font:700 16px "Times New Roman",Times,serif;margin:0 0 4px;color:#000}.bap p{margin:0 0 10px}.bap .c{text-align:center}.bap ol{margin:0 0 10px;padding-left:24px}.bap li{margin-bottom:6px}.bap .ph{background:none;color:inherit}.bap table.bt,#app .bap table.bt{width:100%;border-collapse:collapse;margin:16px 0;min-width:0;font:12px/1.4 "Times New Roman",Times,serif}.bap table.bt th,.bap table.bt td,#app .bap table.bt th,#app .bap table.bt td{border:1px solid #000;padding:6px 8px;text-align:left;vertical-align:top;background:#fff;color:#000;font:inherit;text-transform:none;letter-spacing:0}.bap table.bt th,#app .bap table.bt th{text-align:center;font-weight:700;vertical-align:middle}.bap table.tt td{height:46px}.bap .lmp{margin-top:26px}.bap .lh{text-align:right;font-weight:700;font-size:11px;margin:0 0 6px}.bap .ls{text-align:left;font-size:10.5px;margin:0 0 6px;line-height:1.5}.bap table.sm,#app .bap table.sm{font-size:11px;margin-top:6px}.bap table.sm td{height:auto}`;(function () { const s = document.createElement('style'); s.textContent = PT_PAPER_CSS; document.head.appendChild(s); })();
+const PT_PAPER_CSS = `.bap{background:#fff;color:#000;font:13px/1.55 "Times New Roman",Times,serif;padding:34px 44px;text-align:justify}.bap h3{text-align:center;text-decoration:underline;font:700 16px "Times New Roman",Times,serif;margin:0 0 4px;color:#000}.bap p{margin:0 0 10px}.bap .c{text-align:center}.bap ol{margin:0 0 10px;padding-left:24px}.bap li{margin-bottom:6px}.bap .ph{background:none;color:inherit}.bap table.bt,#app .bap table.bt{width:100%;border-collapse:collapse;margin:16px 0;min-width:0;font:12px/1.4 "Times New Roman",Times,serif}.bap table.bt th,.bap table.bt td,#app .bap table.bt th,#app .bap table.bt td{border:1px solid #000;padding:6px 8px;text-align:left;vertical-align:top;background:#fff;color:#000;font:inherit;text-transform:none;letter-spacing:0}.bap table.bt th,#app .bap table.bt th{text-align:center;font-weight:700;vertical-align:middle;background:#e8edf2}.bap table.tt td{height:46px}.bap .lmp{margin-top:26px}.bap .lh{text-align:right;font-weight:700;font-size:11px;margin:0 0 6px}.bap .ls{text-align:left;font-size:10.5px;margin:0 0 6px;line-height:1.5}.bap table.sm,#app .bap table.sm{font-size:11px;margin-top:6px}.bap table.sm td{height:auto}`;(function () { const s = document.createElement('style'); s.textContent = PT_PAPER_CSS; document.head.appendChild(s); })();
 function ptPrint(f, no) {
   const w = window.open('', '_blank'); if (!w) return toast('Pop-up diblokir browser.');
   w.document.write(`<title>Berita Acara Penelitian - ${esc(no)}</title><style>@page{size:A4 landscape;margin:14mm}body{margin:0}${PT_PAPER_CSS}.bap{padding:0}</style><body><div class="bap">${ptPrevHtml(f, no)}</div>`);
   w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
 }
 
-/* Generate .docx dari template Word */
+
 function ptTokens(f) {
   return {
     Nomor_BAP: f.nobap, Tanggal_BAP_Terbaca: f.terbaca || ptTerbaca(f.tgl), Tanggal_BAP_Terbilang: ptKal(f.tgl),

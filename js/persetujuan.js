@@ -115,7 +115,6 @@ function psjMMSimpan(mm, info) {
 function psjMMReset() { PSJ_MM = PSJ_MM0; PSJ_MMI = PSJ_MMI0; try { localStorage.removeItem(PSJ_MM_KEY); } catch (e) { /* abaikan */ } }
 
 const psjNz = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
-/* Baca lembar Excel menjadi data acuan: Yth / TujuanPersetujuan per OPD, alasan pembongkaran, saran Nama BMD */
 function psjMMBuild(sheets) {
   const sb = sheets.find(x => /persetujuan/i.test(x.name) && /bongkar/i.test(x.name)), sp = sheets.find(x => /persetujuan/i.test(x.name) && /penjualan/i.test(x.name));
   if (!sb && !sp) throw new Error('Lembar "Persetujuan Ijin Bongkar" atau "Persetujuan Penjualan" tidak ditemukan.');
@@ -144,8 +143,6 @@ function psjMMBuild(sheets) {
   }
   return out;
 }
-
-/*  Kolom per jenis permohonan (mengikuti kolom mail merge pada Excel dan Word)  */
 const PSJ_ORD = {
   'Izin Bongkar': ['nomor', 'tgl', 'perihal', 'tujuan', 'nopermohonan', 'tglpermohonan', 'perihalpermohonan', 'opd', 'alasan'],
   'Pemindahtanganan': ['nomor', 'tgl', 'perihal', 'tujuan', 'nopermohonan', 'tglpermohonan', 'bmd', 'opd', 'perihalpermohonan']
@@ -161,8 +158,6 @@ const psjLabel = (k, j) => ({
 const psjFor = (list, opd) => { const k = ptOpdKey(opd); for (let i = list.length - 1; i >= 0; i--) if (ptOpdKey(list[i][0]) == k) return list[i][1]; return ''; };
 const psjTujuanDef = (opd, j) => psjFor(j == 'Izin Bongkar' ? PSJ_MM.yth : PSJ_MM.tujuan, opd) || psjFor(j == 'Izin Bongkar' ? PSJ_MM.tujuan : PSJ_MM.yth, opd) || (opd ? 'Kepala ' + opd : '');
 const psjTgl = iso => { const d = ptD(iso); return d ? `${d.getDate()} ${PT_BLN[d.getMonth()]} ${d.getFullYear()}` : String(iso || ''); };
-
-/* Nilai awal diambil dari input sebelumnya permohonan (nomor, tanggal, OPD) dan penelitian (Nama BMD, perihal) */
 function psjDefault(d) {
   const ff = (RX[d[0]] || {}).f || {}, pen = (PEN[d[0]] && PEN[d[0]].f) || {}, j = psjJenis(d), pp = pen.perihal || ptPerihalDef(d);
   return {
@@ -175,12 +170,11 @@ function psjMerge(def, saved) {
   Object.keys(saved || {}).forEach(k => { const v = saved[k]; if (v != null && String(v).trim() !== '') o[k] = v; });
   return o;
 }
-/* Persetujuan sudah terbit = disimpan (Tersimpan). Dipakai untuk membuka Permohonan Penaksiran milik Pengguna Barang. */
 const psjOk = no => { const p = (SVS[no] || {}).psj; return !!p && p.st == 'Tersimpan'; };
-const psjStat = no => { const p = (SVS[no] || {}).psj; return !p ? ['s-n', 'Belum diinput'] : p.st == 'Tersimpan' ? ['s-g', 'Tersimpan'] : ['s-o', 'Draft']; };
+const psjStat = no => { const p = (SVS[no] || {}).psj; return !p ? ['s-n', 'Belum diinput'] : p.st == 'Tersimpan' ? ['s-g', 'Selesai'] : ['s-o', 'Draft']; };
 const psjMissing = (f, j) => psjKeys(j).filter(k => !String(f[k] || '').trim()).map(k => psjLabel(k, j));
 
-/* Mail Merge: token Word dan pratinjau  */
+
 function psjTokens(f, j) {
   const base = { Tanggal_Persetujuan: psjTgl(f.tgl), Nomor_Persetujuan: f.nomor, Tanggal_Permohonan: psjTgl(f.tglpermohonan), Perihal_Permohonan: f.perihalpermohonan };
   return j == 'Izin Bongkar'
@@ -211,7 +205,7 @@ function psjPrevHtml(f, j, no) {
     `<table class="bt sm"><thead><tr>${PT_LAMP_H.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${ptItems(no).map((x, i) => `<tr>${ptLampRow(x, i).map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   return kop + isi + PSJ_TEMBUSAN + lamp;
 }
-const PSJ_CSS = '.bap table.hd{border-collapse:collapse;margin:0 0 10px}.bap table.hd td{border:0;padding:1px 10px 1px 0;vertical-align:top;background:none;color:#000;font:inherit}.bap .tb{margin:12px 0 2px;font-size:11px}.bap ol.tbl{font-size:11px;margin:0 0 6px}.bap ol ol{margin:6px 0}';
+const PSJ_CSS = '.bap table.hd{border-collapse:collapse;margin:0 0 10px}.bap table.hd td{border:0;padding:1px 10px 1px 0;vertical-align:top;background:none;color:#000;font:inherit}#app .bap table.hd,#app .bap table.hd td{border:0!important}.bap .tb{margin:12px 0 2px;font-size:11px}.bap ol.tbl{font-size:11px;margin:0 0 6px}.bap ol ol{margin:6px 0}';
 const psjCollect = j => { const o = {}; psjKeys(j).forEach(k => { const e = $('#p_' + k); o[k] = e ? e.value.trim() : ''; }); return o; };
 function psjRender(j) { const e = $('#p_prev'); if (e) e.innerHTML = psjPrevHtml(psjCollect(j), j, psjCur); }
 function psjPrint(f, j, no) {
@@ -219,7 +213,7 @@ function psjPrint(f, j, no) {
   w.document.write(`<title>Persetujuan ${esc(j)} - ${esc(no)}</title><style>@page{size:A4;margin:16mm}body{margin:0}${PT_PAPER_CSS}${PSJ_CSS}.bap{padding:0}.bap .lmp{page-break-before:always}</style><body><div class="bap">${psjPrevHtml(f, j, no)}</div>`);
   w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
 }
-/* Generate .docx dari template word (Izin Bongkar / Pemindahtanganan) */
+
 async function psjDocx(no, f, j) {
   const b64 = j == 'Izin Bongkar' ? (typeof PSJ_TPL_IB_B64 != 'undefined' && PSJ_TPL_IB_B64) : (typeof PSJ_TPL_PM_B64 != 'undefined' && PSJ_TPL_PM_B64);
   if (typeof JSZip == 'undefined' || !b64) throw new Error('JSZip / template belum termuat');
@@ -233,7 +227,7 @@ async function psjDocx(no, f, j) {
   return z.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', compression: 'DEFLATE' });
 }
 
-/*  Halaman 1 : Daftar Permohonan dan Data Mail Merge  */
+
 function psjMMCard() {
   const i = PSJ_MMI, b = i.baris || {}, imp = psjImp;
   const impHtml = imp ? `<div class="pt-imp"><b>Hasil pembacaan: ${esc(imp.info.src)}</b><p class="mt">Persetujuan Izin Bongkar: ${imp.d.baris.bongkar || 0} baris, ${imp.d.yth.length} Yth per OPD, ${imp.d.alasan.length} alasan pembongkaran. Persetujuan Penjualan: ${imp.d.baris.penjualan || 0} baris, ${imp.d.tujuan.length} Tujuan Persetujuan per OPD, ${imp.d.bmd.length} saran Nama BMD.</p><div class="pt-bar" style="margin:8px 0 0"><button class="btn sm" data-mm="apply">Terapkan data ini</button><button class="btn o sm" data-mm="cancel">Batal</button></div></div>` : '';
@@ -250,15 +244,15 @@ function psjRows(r, q) {
   return f.map((d, i) => {
     const S = SVS[d[0]], st = psjStat(d[0]), p = S.psj, pen = ptStat(d[0]);
     return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(psjJenis(d))}</td>` +
-      `<td>${PL(pen[0], pen[1])}</td><td>${S.psjBa ? PL(S.psjBa.st == 'Selesai' ? 's-g' : 's-o', S.psjBa.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum upload</span>'}</td>` +
-      `<td>${PL(st[0], st[1])}</td><td>${psjOk(d[0]) ? (a => PL(a[0], a[1]))(tksStat(d[0])) : '<span class="mt">Menunggu persetujuan</span>'}</td><td><div class="pt-ac"><button class="btn sm" data-psj="${esc(d[0])}">${p ? (p.st == 'Tersimpan' ? 'Lihat / Ubah' : 'Lanjutkan') : 'Input Persetujuan'}</button>${S.psjBa ? ptBaIcons(d[0], S.psjBa.st == 'Selesai') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload BA TTD</button>`}</div></td></tr>`;
+      `<td>${PL(pen[0], pen[1])}</td><td>${S.psjBa ? PL(S.psjBa.st == 'Selesai' ? 's-g' : 's-o', S.psjBa.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum diunggah</span>'}</td>` +
+      `<td>${PL(st[0], st[1])}</td><td>${psjOk(d[0]) ? (a => PL(a[0], a[1]))(tksStat(d[0])) : '<span class="mt">Menunggu persetujuan</span>'}</td><td><div class="pt-ac"><button class="btn sm" data-psj="${esc(d[0])}">${p ? (p.st == 'Tersimpan' ? 'Lihat / Ubah' : 'Lanjutkan') : 'Input Persetujuan'}</button>${S.psjBa ? ptBaIcons(d[0], S.psjBa.st == 'Selesai', 'psjBa') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload Dokumen Persetujuan</button>`}</div></td></tr>`;
   }).join('');
 }
 function psjList(s) {
   const r = svRows().filter(d => SVS[d[0]].st == 'Selesai');
   s.innerHTML = HD('Persetujuan Kepala Daerah', '') + psjMMCard() +
     `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Permohonan</h2><small class="mt"></small></div><label class="sr2 pt-q"><svg class="i"><use href="#sq"></use></svg><input id="psj_q" placeholder="Cari nomor surat atau perangkat daerah…"></label></div>` +
-    `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Permohonan</th><th>Status Penelitian</th><th>Status BA TTD</th><th>Status Persetujuan</th><th>Penaksiran</th><th>Aksi</th></tr></thead><tbody id="psj_tb">${psjRows(r, '')}</tbody></table></div></div>`;
+    `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Permohonan</th><th>Status Penelitian</th><th>Status Dokumen Persetujuan</th><th>Status Persetujuan</th><th>Penaksiran</th><th>Aksi</th></tr></thead><tbody id="psj_tb">${psjRows(r, '')}</tbody></table></div></div>`;
   s.oninput = e => { if (e.target.id == 'psj_q') $('#psj_tb').innerHTML = psjRows(r, e.target.value); };
   s.onchange = e => {
     if (e.target.id != 'psj_file' || !e.target.files[0]) return;
@@ -284,7 +278,6 @@ function psjList(s) {
   };
 }
 
-/* Halaman 2: Form Persetujuan */
 const psjIn = (k, j, v, o = {}) => `<label class="l2${o.full ? ' full' : ''}">${psjLabel(k, j)}` +
   (o.area ? `<textarea id="p_${k}" rows="${o.rows || 3}" placeholder="${esc(o.ph || '')}">${esc(v)}</textarea>`
     : `<input id="p_${k}" type="${o.t || 'text'}" value="${esc(v)}" placeholder="${esc(o.ph || '')}"${o.list ? ' list="' + o.list + '" autocomplete="off"' : ''}>`) + `</label>`;
@@ -309,7 +302,7 @@ function psjForm(s) {
   s.innerHTML =
     `<div class="pt-hd"><button class="btn o sm" data-a="bk">← Kembali ke daftar</button><div><h1>Dokumen Persetujuan ${esc(no)}</h1><p>${esc(d[1])} · ${esc(j)}</p></div><span style="margin-left:auto">${PL(st[0], st[1])}</span></div>` +
     ptSec('Input Dokumen Persetujuan', 'Persetujuan Kepala Daerah mengikuti jenis permohonan yang diajukan.',
-      `<div class="ff">${PSJ_ORD[j].map(fld).join('')}</div><div class="psj-act"><button type="button" class="btn o" data-a="draft">Simpan Draft</button><button type="button" class="btn" data-a="simpan">Simpan Data ${esc(j)}</button></div>`) +
+      `<div class="ff">${PSJ_ORD[j].map(fld).join('')}</div><div class="psj-act"><button type="button" class="btn o" data-a="draft">Simpan Draft Persetujuan</button><button type="button" class="btn" data-a="simpan">Selesaikan Dokumen Persetujuan</button></div>`) +
     `<datalist id="psj_dl_t">${tujSaran.map(x => `<option value="${esc(x)}">`).join('')}</datalist><datalist id="psj_dl_b">${bmdSaran.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` +
     ptSec('Pratinjau Surat Persetujuan', 'Isi pratinjau mengikuti isian di atas dan template surat Word.', `<div class="pt-bar"><button class="btn o sm" data-a="prev">Perbarui Pratinjau</button><button class="btn o sm" data-a="print">Cetak / Simpan PDF</button><button class="btn sm" data-a="docx">Unduh Word (.docx)</button></div><div class="pt-prev"><div class="bap" id="p_prev"></div></div>`);
   if (!$('#psj_css')) { const c = document.createElement('style'); c.id = 'psj_css'; c.textContent = PSJ_CSS; document.head.appendChild(c); }
@@ -341,16 +334,16 @@ function psjForm(s) {
       }).catch(err => { console.error(err); toast('Gagal membuat dokumen Word.'); }).finally(() => { b.disabled = false; });
       return;
     }
-    const sudah = psjOk(psjCur);            // persetujuan yang sudah terbit tidak diturunkan lagi menjadi Draft
+    const sudah = psjOk(psjCur);            
     if ((a == 'simpan' || sudah) && miss.length) return toast('Lengkapi dulu: ' + miss.join(', ') + '.', 'err');
     const T = SVS[psjCur]; if (!T) return;
     T.psj = { f: F, st: (a == 'simpan' || sudah) ? 'Tersimpan' : 'Draft', ts: nowStr() };
-    /* Pemicu otomatis: persetujuan terbit -> status permohonan menjadi Disetujui -> terbuka di Permohonan Penaksiran (Pengguna Barang) */
+    
     let lanjut = false;
     const dd = R.find(r => r[0] == psjCur);
     if (T.psj.st == 'Tersimpan' && dd && dd[6] == 'Dalam Proses') { dd[6] = 'Disetujui'; hs(psjCur, 'Persetujuan Kepala Daerah terbit', 'Nomor ' + (F.nomor || '-') + ' · lanjut ke Permohonan Penaksiran'); lanjut = true; }
     Store.persist();
-    toast(lanjut ? 'Persetujuan tersimpan. Permohonan kini lanjut ke Permohonan Penaksiran (Pengguna Barang).' : a == 'simpan' || sudah ? 'Data persetujuan tersimpan.' : 'Draft persetujuan disimpan.', 'ok');
+    toast(lanjut ? 'Dokumen Persetujuan selesai. Permohonan kini lanjut ke Permohonan Penaksiran (Pengguna Barang).' : a == 'simpan' || sudah ? 'Dokumen Persetujuan selesai dan dikunci.' : 'Draft Persetujuan disimpan.', 'ok');
     psjCur = null; pgPsj();
   };
 }

@@ -14,7 +14,7 @@ const ROLES = {
   },
   admin: {
     label: 'Admin',
-    views: ['dash', 'det', 'adm', 'sv', 'pt', 'psj', 'tksadm', 'soon', 'ob', 'kk', 'lpr', 'hp', 'rf','dm'],  
+    views: ['dash', 'det', 'adm', 'sv', 'pt', 'psj', 'tksadm', 'soon', 'ob', 'kk', 'lpr', 'hp', 'rf','dm', 'sk', 'lel', 'lgs'],  
     perms: ['verifikasi'],
     listDesc: 'Pantau seluruh permohonan yang diajukan Pengguna Barang. Draft milik pemohon tidak ditampilkan.',
     listSub: 'Daftar permohonan yang sudah diajukan.',
