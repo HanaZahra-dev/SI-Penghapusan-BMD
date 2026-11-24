@@ -232,7 +232,7 @@ function pjPage(k) {
 /* ---------- halaman detail ---------- */
 function pjUpRow(no, k, s, ro) {
   const d = pjD(no, k), u = d[s.id] && d[s.id].up;
-  return `<div class="dr${u ? ' y' : ''}"><span class="dn">${u ? '✓' : '•'}</span><div class="dm"><b>${s.up}</b><small class="mt">${u ? esc(u.n) + ' · ' + esc(ptSize(u.sz)) + ' · ' + esc(u.ts) : (s.form ? 'Cetak dokumen di atas, tanda tangani, lalu unggah hasil pindaiannya (PDF / JPG / PNG, maks. 5 MB).' : 'PDF / JPG / PNG, maksimal 5 MB')}</small></div>` +
+  return `<div class="dr${u ? ' y' : ''}"><span class="dn">${u ? '✓' : '•'}</span><div class="dm"><b>${s.up}</b><small class="mt">${u ? esc(u.n) + ' · ' + esc(ptSize(u.sz)) + ' · ' + esc(u.ts) : (s.form ? 'Cetak dokumen di atas, tanda tangani, lalu unggah hasilnya (PDF / JPG / PNG, maks. 5 MB).' : 'PDF / JPG / PNG, maksimal 5 MB')}</small></div>` +
     `<div class="da">${u ? `<button type="button" class="btn o sm" data-a="view" data-id="${s.id}">Lihat</button>` : ''}${ro ? '' : `<button type="button" class="btn${u ? ' o' : ''} sm" data-a="up" data-id="${s.id}">${u ? 'Ganti' : 'Pilih File'}</button>${u ? `<button type="button" class="btn o sm" data-a="rm" data-id="${s.id}">Hapus</button>` : ''}`}</div></div>`;
 }
 function pjInput(id, k, f, F, ro) {
@@ -244,9 +244,9 @@ function pjDetail(s, k) {
   let body = '';
   PJ_STEPS[k].forEach((sp, i) => {
     const ok = pjStepOk(d, sp);
-    if (!sp.form) { body += ptSec((i + 1) + '. ' + sp.up, 'Unggah risalah lelang resmi dari KPKNL.', pjUpRow(no, k, sp, ro)); return; }
+    if (!sp.form) { body += ptSec((i + 1) + '. ' + sp.up, 'Unggah risalah lelang resmi.', pjUpRow(no, k, sp, ro)); return; }
     const F = pjF(no, k, sp.id), saved = !!(d[sp.id] && d[sp.id].f);
-    body += `<div class="cd pt-sec"><div class="ch"><div><h2>${i + 1}. Input ${sp.t} dan ${sp.up}</h2><small class="mt">${sp.id == 'bast' ? 'Berita Acara Serah Terima' : 'Akta Jual Beli'} dibuat otomatis dari template Word. Isi data, unduh, tanda tangani, lalu unggah.</small></div>${PL(ok ? 's-g' : saved ? 's-b' : 's-n', ok ? 'Lengkap' : saved ? 'Data tersimpan' : 'Belum diisi')}</div>` +
+    body += `<div class="cd pt-sec"><div class="ch"><div><h2>${i + 1}. Input ${sp.t} dan ${sp.up}</h2><small class="mt">${sp.id == 'bast' ? 'Berita Acara Serah Terima' : 'Akta Jual Beli'}.</small></div>${PL(ok ? 's-g' : saved ? 's-b' : 's-n', ok ? 'Lengkap' : saved ? 'Data tersimpan' : 'Belum diisi')}</div>` +
       `<div class="ff">${pjFields(sp.id, k).map(f => pjInput(sp.id, k, f, F, ro)).join('')}</div>` +
       (ro ? '' : `<div class="pt-bar" style="margin:14px 0 8px"><button type="button" class="btn" data-a="save" data-id="${sp.id}">Simpan Data ${sp.t}</button><button type="button" class="btn o" data-a="prev" data-id="${sp.id}">Pratinjau</button><button type="button" class="btn o" data-a="docx" data-id="${sp.id}">Unduh Word (.docx)</button><a class="btn o" href="assets/template/Template_${sp.t}.docx" download="Template ${sp.t}.docx">Unduh Template Kosong</a></div>`) +
       `<div class="drs" style="margin-top:6px">${pjUpRow(no, k, sp, ro)}</div></div>`;
