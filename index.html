@@ -60,13 +60,21 @@
 <div class="grp">Modul 2</div>
 <button class="nav" data-g="Modul 2" data-v="ob"><svg class="i"><use href="#r"></use></svg>Daftar Objek Penaksiran</button>
 <button class="nav" data-g="Modul 2" data-v="kk"><svg class="i"><use href="#c"></use></svg>Kertas Kerja Penaksiran </button>
-<button class="nav" data-g="Modul 2" data-v="lpr"><svg class="i"><use href="#b"></use></svg>Laporan Penaksiran </button>
+<button class="nav" data-g="Modul 2" data-v="lpr"><svg class="i"><use href="#n"></use></svg>Laporan Penaksiran</button>
+<button class="nav" data-g="Modul 2" data-v="kpknl"><svg class="i"><use href="#n"></use></svg>Laporan Penilaian KPKNL</button>
 <button class="nav" data-g="Modul 2" data-v="sk"><svg class="i"><use href="#f"></use></svg>SK Nilai Limit</button>
 <div class="grp">Modul 3</div>
 <button class="nav" type="button" data-g="Modul 3" data-menu-toggle="penjualan-submenu" aria-expanded="false" aria-controls="penjualan-submenu"><svg class="i"><use href="#f"></use></svg>Permohonan Penjualan<svg class="i nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
 <div class="nav-submenu" id="penjualan-submenu" hidden>
 <button class="nav subnav" data-g="Modul 3" data-v="lel">Lelang<em class="bdg" id="pjcL" style="display:none">0</em></button>
 <button class="nav subnav" data-g="Modul 3" data-v="lgs">Langsung<em class="bdg" id="pjcG" style="display:none">0</em></button>
+</div>
+<button class="nav" type="button" data-g="Modul 3" data-menu-toggle="penghapusan-submenu" aria-expanded="false" aria-controls="penghapusan-submenu"><svg class="i"><use href="#bd"></use></svg>Penghapusan<svg class="i nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<div class="nav-submenu" id="penghapusan-submenu" hidden>
+<button class="nav subnav" data-g="Modul 3" data-v="phu" data-bc="Penghapusan › Usulan">Usulan<em class="bdg" id="phcU" style="display:none">0</em></button>
+<button class="nav subnav" data-g="Modul 3" data-v="phua" data-bc="Penghapusan › Usulan Admin">Usulan Admin<em class="bdg" id="phcA" style="display:none">0</em></button>
+<button class="nav subnav" data-g="Modul 3" data-v="phs" data-bc="Penghapusan › Penetapan">Penetapan<em class="bdg" id="phcS" style="display:none">0</em></button>
+<button class="nav subnav" data-g="Modul 3" data-v="phsl" data-bc="Penghapusan › Penghapusan Sebab Lain">Penghapusan Sebab Lain</button>
 </div>
 <div class="grp">Database Referensi</div>
 <button class="nav" data-g="Referensi" data-v="hp"><svg class="i"><use href="#b"></use></svg>Harga Pembanding</button>
@@ -99,14 +107,14 @@
 </div>
 <div class="cd" id="alur"><div class="ch"><div><h2>Alur Penghapusan BMD</h2><small class="mt">Tahapan yang dilalui setiap Permohonan</small></div></div><div class="stp"><div class="sp"><i>1</i>Buat Permohonan</div><div class="sp"><i>2</i>Lengkapi Dokumen</div><div class="sp"><i>3</i>Pilih Daftar KIB </div><div class="sp"><i>4</i>Simpan Draft</div><div class="sp"><i>5</i>Ajukan Verifikasi</div><div class="sp"><i>6</i>Verifikasi Admin</div><div class="sp"><i>7</i>Diterima / Ditolak</div></div></div>
 <div id="dashList"></div>
-<div class="cd" id="dRecent"><div class="ch"><h2>Permohonan Terbaru</h2><button class="lk" data-v2="list">Lihat Semua →</button></div><div class="tw"><table><thead><tr><th>No. Permohonan</th><th>Perangkat Daerah</th><th>Objek BMD</th><th>Jenis</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="t1"></tbody></table></div></div>
+<div class="cd" id="dRecent"><div class="ch"><h2>Permohonan Terbaru</h2><button class="lk" data-v2="list">Lihat Semua →</button></div><div class="tw"><table><thead><tr><th>No. Permohonan</th><th>Perangkat Daerah</th><th>Objek BMD</th><th>Jenis</th><th>Tanggal</th><th>Status</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody id="t1"></tbody></table></div></div>
 </section>
 <section class="vw" id="list">
 <div class="bn"><div class="bi"><svg class="i" style="width:28px;height:28px"><use href="#f"></use></svg></div><div><h1>Permohonan</h1><p>Buat permohonan, unggah dokumen, pilih barang dari daftar KIB, lalu ajukan untuk verifikasi Admin.</p></div><button class="btn pb-only" data-v2="form" style="margin-left:auto">+ Buat Permohonan</button></div>
 <div class="cd"><div class="ch"><div><h2 style="font-size:18px">Daftar Permohonan</h2><small class="mt" id="lsub">Permohonan yang sudah disimpan tampil di sini. Gunakan Edit untuk memperbaiki dan Ajukan Verifikasi untuk mengirim ke Admin.</small></div>
 <div class="ft2"><label class="sr2"><svg class="i"><use href="#sq"></use></svg><input id="q2" placeholder="Cari nomor surat, nama pemohon…"/></label><button class="btn o" id="fb"><svg class="i"><use href="#fu"></use></svg>Filter</button><button aria-label="Unduh" class="ib2" id="dl"><svg class="i"><use href="#dw"></use></svg></button><button aria-label="Lainnya" class="ib2">⋮</button></div></div>
 <div class="cs"><div class="c1 on" data-f=""><u><svg class="i"><use href="#f"></use></svg></u><div><small>Total Permohonan</small><b>0</b><em class="tr up"><span>Semua status</span></em></div></div><div class="c5" data-f="Menunggu Verifikasi"><u><svg class="i"><use href="#k"></use></svg></u><div><small>Menunggu Verifikasi</small><b>0</b><em class="tr up"><span>Menunggu Admin</span></em></div></div><div class="c2" data-f="Dalam Proses"><u><svg class="i"><use href="#k"></use></svg></u><div><small>Dalam Proses</small><b>0</b><em class="tr up"><span>Survei / penelitian</span></em></div></div><div class="c3" data-f="Disetujui"><u><svg class="i"><use href="#c"></use></svg></u><div><small>Disetujui</small><b>0</b><em class="tr up"><span>Selesai diproses</span></em></div></div><div class="c4" data-f="Ditolak"><u><svg class="i"><use href="#s"></use></svg></u><div><small>Ditolak</small><b>0</b><em class="tr up"><span>Tidak dilanjutkan</span></em></div></div></div>
-<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal Surat</th><th>Pemohon</th><th>Dokumen</th><th>KIB</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="t2"></tbody></table></div>
+<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal Surat</th><th>Pemohon</th><th>Dokumen</th><th>KIB</th><th>Status</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody id="t2"></tbody></table></div>
 <div class="pgn"><span id="cnt"></span><div id="pgn"></div></div></div>
 <div class="cd em" id="em" style="display:none"><svg aria-hidden="true" height="54" viewbox="0 0 60 50" width="64"><rect fill="#eaf2ff" height="36" rx="4" stroke="#7aa6e8" stroke-width="2" width="28" x="16" y="8"></rect><path d="M22 20h16M22 27h16M22 34h9" stroke="#7aa6e8" stroke-linecap="round" stroke-width="2.4"></path><path d="M6 14v6M3 17h6M52 30v6M49 33h6" stroke="#2563eb" stroke-linecap="round" stroke-width="2"></path></svg><b>Belum ada permohonan</b><p class="mt" style="margin:2px 0 12px;font-size:12.5px">Klik tombol "Buat Permohonan" untuk memulai.</p><button class="btn sm pb-only" data-v2="form">+ Buat Permohonan</button></div>
 </section>
@@ -133,8 +141,8 @@
 <div class="ck" id="si"><i>✓</i>Identitas Permohonan</div><div class="ck" id="sd"><i>✓</i><span id="sdt">Dokumen persyaratan (0/4)</span></div><div class="ck" id="sk2"><i>✓</i><span id="skt">Barang KIB (0 dipilih)</span></div>
 <div style="display:grid;gap:10px;margin-top:16px"><button class="btn" disabled="" id="aj" style="justify-content:center" type="button">Ajukan Verifikasi</button><button class="btn o" id="dr" style="justify-content:center" type="button">Simpan Draft</button></div></aside></form>
 </section>
-<section class="vw" id="adm"></section><section class="vw" id="sv"></section><section class="vw" id="pt"></section><section class="vw" id="psj"></section><section class="vw" id="ob"></section><section class="vw" id="kk"></section><section class="vw" id="lpr"></section><section class="vw" id="hp"></section><section class="vw" id="rf"></section><section class="vw" id="dm"></section><section class="vw"id="pmp"></section>
-<section class="vw" id="tksadm"></section><section class="vw" id="sk"></section><section class="vw" id="lel"></section><section class="vw" id="lgs"></section><section class="vw" id="soon"><div class="cd" style="text-align:center;padding:70px 20px"><h2 id="sn" style="font-size:20px;margin-bottom:6px">Halaman</h2><p class="mt" style="margin:0">Menyusul</p></div></section>
+<section class="vw" id="adm"></section><section class="vw" id="sv"></section><section class="vw" id="pt"></section><section class="vw" id="psj"></section><section class="vw" id="ob"></section><section class="vw" id="kk"></section><section class="vw" id="lpr"></section><section class="vw" id="kpknl"></section><section class="vw" id="hp"></section><section class="vw" id="rf"></section><section class="vw" id="dm"></section><section class="vw"id="pmp"></section>
+<section class="vw" id="tksadm"></section><section class="vw" id="sk"></section><section class="vw" id="lel"></section><section class="vw" id="lgs"></section><section class="vw" id="phu"></section><section class="vw" id="phs"></section><section class="vw" id="phua"></section><section class="vw" id="phsl"></section><section class="vw" id="soon"><div class="cd" style="text-align:center;padding:70px 20px"><h2 id="sn" style="font-size:20px;margin-bottom:6px">Halaman</h2><p class="mt" style="margin:0">Menyusul</p></div></section>
 <section class="vw" id="det"></section>
 </main>
 </div>
@@ -152,8 +160,13 @@
 <script src="js/bast-template.js"></script>
 <script src="js/ajb-template.js"></script>
 <script src="js/penjualan.js"></script>
+<script src="js/penghapusan.js"></script>
 <script src="js/sk-template.js"></script>
 <script src="js/sk.js"></script>
+<script src="js/laporan-logo.js"></script>
+<script src="js/lp-template.js"></script>
+<script src="js/lp.js"></script>
+<script src="js/kpknl.js"></script>
 <script src="js/script.js"></script>
 </body>
 </html>

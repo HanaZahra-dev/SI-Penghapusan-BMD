@@ -189,7 +189,7 @@ function ptDefault(d, S) {
   return {
     nobap: '', tgl: today(), terbaca: ptTerbaca(today()), bmd: '',
     nosurat: d[0], tglsurat: ptLong(ff.tgl) || ptTglTeks(d[5]), perihal: ptPerihalDef(d), opd: d[1], sub: d[1],
-    alamat: sd.lk || '', proses: ptJenis(d),
+    alamat: alamatPermohonan(d[0]) || alamatOpdTerakhir(d[1]) || sd.lk || '', proses: ptJenis(d),
     nokep: '000.2.3.2/Kep.31-BKAD/2026', tglkep: '2026-01-22', judulkep: PT_JUDUL_KEP,
     at1: mm[0], nip1: mm[1], at2: mm[2], nip2: mm[3],
     rek: 'Layak dihapus', tglpen: today(), cat: ''
@@ -197,6 +197,7 @@ function ptDefault(d, S) {
 }
 const ptFields = ['nobap', 'tgl', 'terbaca', 'bmd', 'nosurat', 'tglsurat', 'perihal', 'opd', 'sub', 'alamat', 'proses', 'nokep', 'tglkep', 'judulkep', 'at1', 'nip1', 'at2', 'nip2', 'rek', 'tglpen', 'cat'];
 const ptCollect = () => { const o = {}; ptFields.forEach(k => { const e = $('#b_' + k); o[k] = e ? e.value : ''; }); return o; };
+const ptMmLabel = m => `${m[4].join(' / ')} - ${m[0]} (${m[1]}) & ${m[2]} (${m[3]})`;
 const ptMissing = f => PT_REQ.filter(([k]) => !String(f[k] || '').trim()).map(x => x[1]);
 const ptStat = no => { const p = PEN[no]; return !p || !p.f ? ['s-n', 'Belum disusun'] : p.st == 'Final' ? ['s-g', 'Tersusun'] : ['s-o', 'Draft']; };
 
@@ -227,10 +228,10 @@ const ptBaIcons = (no, done, k = 'ba') => { const l = ptBaLabel(k);
 function ptRows(r, q) {
   q = (q || '').toLowerCase().trim();
   const f = r.filter(d => !q || (d[0] + ' ' + d[1]).toLowerCase().includes(q));
-  if (!f.length) return `<tr><td colspan="8" class="mt" style="text-align:center;padding:26px">${q ? 'Tidak ada hasil untuk pencarian tersebut.' : 'Belum ada survei yang selesai.'}</td></tr>`;
+  if (!f.length) return `<tr><td colspan="9" class="mt" style="text-align:center;padding:26px">${q ? 'Tidak ada hasil untuk pencarian tersebut.' : 'Belum ada survei yang selesai.'}</td></tr>`;
   return f.map((d, i) => {
     const S = SVS[d[0]], st = ptStat(d[0]), n = permKib(d[0]).length;
-    return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(d[4])}</td><td><b>${n}</b> objek</td><td>${ptSlash(S.tgl)}</td><td>${PL(st[0], st[1])}</td><td>${S.ba ? PL(S.ba.st == 'Selesai' ? 's-g' : 's-o', S.ba.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum upload</span>'}</td><td><div class="pt-ac"><button class="btn sm" data-pn="${esc(d[0])}">${st[1] == 'Belum disusun' ? 'Susun penelitian' : 'Lanjutkan penelitian'}</button>${S.ba ? ptBaIcons(d[0], S.ba.st == 'Selesai') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload BA TTD</button>`}</div></td></tr>`;
+    return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(d[4])}</td><td><b>${n}</b> objek</td><td>${ptSlash(S.tgl)}</td><td>${PL(st[0], st[1])}</td><td>${S.ba ? PL(S.ba.st == 'Selesai' ? 's-g' : 's-o', S.ba.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum upload</span>'}</td><td>${durCell(d[0],'research')}</td><td><div class="pt-ac"><button class="btn sm" data-pn="${esc(d[0])}">${st[1] == 'Belum disusun' ? 'Susun penelitian' : 'Lanjutkan penelitian'}</button>${S.ba ? ptBaIcons(d[0], S.ba.st == 'Selesai') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload BA TTD</button>`}</div></td></tr>`;
   }).join('');
 }
 function ptList(s) {
@@ -238,7 +239,7 @@ function ptList(s) {
   s.innerHTML = HD('Penelitian Tim Penghapusan', '') +
     ptMMCard() +
     `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Hasil Survei</h2><small class="mt"></small></div><label class="sr2 pt-q"><svg class="i"><use href="#sq"></use></svg><input id="pt_q" placeholder="Cari nomor surat atau perangkat daerah…"></label></div>` +
-    `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Usulan</th><th>Jumlah Objek</th><th>Tanggal Selesai</th><th>Status Penelitian</th><th>Status BA TTD</th><th>Aksi</th></tr></thead><tbody id="pt_tb">${ptRows(r, '')}</tbody></table></div></div>`;
+    `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Usulan</th><th>Jumlah Objek</th><th>Tanggal Selesai</th><th>Status Penelitian</th><th>Status BA TTD</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody id="pt_tb">${ptRows(r, '')}</tbody></table></div></div>`;
   s.oninput = e => { if (e.target.id == 'pt_q') $('#pt_tb').innerHTML = ptRows(r, e.target.value); };
   s.onchange = e => {
     if (e.target.id != 'pt_file' || !e.target.files[0]) return;
@@ -288,7 +289,7 @@ function ptForm(s) {
     ptSec('2. Keputusan Tim dan Anggota Tidak Tetap', '',
       `<div class="ff">${ptIn('nokep', 'Nomor Keputusan Wali Kota', f.nokep, '')}${ptIn('tglkep', 'Tanggal Keputusan Wali Kota', f.tglkep, '', { t: 'date' })}` +
       `${ptIn('judulkep', 'Judul Keputusan Wali Kota', f.judulkep, '', { area: 1, full: 1 })}` +
-      `<label class="l2 full">Isi anggota tidak tetap dari data BA sebelumnya<select id="b_mm"><option value=""> Pilih OPD</option>${PT_MM.map((m, i) => `<option value="${i}">${esc(m[4].join(' / '))} - ${esc(m[0])} &amp; ${esc(m[2])}</option>`).join('')}</select></label>` +
+      `<label class="l2 full">Isi anggota tidak tetap dari data BA sebelumnya<input id="b_mm" type="search" list="pt_mm_options" placeholder="Pilih atau ketik nama OPD, anggota, atau NIP..." autocomplete="off"><datalist id="pt_mm_options">${PT_MM.map(m => `<option value="${esc(ptMmLabel(m))}">`).join('')}</datalist></label>` +
       `${ptIn('at1', 'Anggota Tidak Tetap 1', f.at1, 'Nama anggota tidak tetap 1')}${ptIn('nip1', 'NIP Anggota Tidak Tetap 1', f.nip1, 'NIP anggota tidak tetap 1')}` +
       `${ptIn('at2', 'Anggota Tidak Tetap 2', f.at2, 'Nama anggota tidak tetap 2')}${ptIn('nip2', 'NIP Anggota Tidak Tetap 2', f.nip2, 'NIP anggota tidak tetap 2')}</div>`) +
     ptSec('3. Anggota Tim Tetap', 'Anggota tetap berdasarkan BA',
@@ -304,7 +305,10 @@ function ptForm(s) {
   ptRender();
   s.oninput = s.onchange = e => {
     const id = e.target.id || '';
-    if (id == 'b_mm') { const m = PT_MM[e.target.value]; if (m) { $('#b_at1').value = m[0]; $('#b_nip1').value = m[1]; $('#b_at2').value = m[2]; $('#b_nip2').value = m[3]; } }
+    if (id == 'b_mm') {
+      const m = PT_MM.find(x => ptMmLabel(x) === e.target.value);
+      if (m) { $('#b_at1').value = m[0]; $('#b_nip1').value = m[1]; $('#b_at2').value = m[2]; $('#b_nip2').value = m[3]; }
+    }
     if (id == 'b_tgl') { const t = $('#b_terbaca'); if (!t.dataset.man) t.value = ptTerbaca(e.target.value); }
     else if (id == 'b_terbaca') e.target.dataset.man = e.target.value && e.target.value != ptTerbaca($('#b_tgl').value) ? 1 : '';
     if (id.startsWith('b_')) ptMem[penCur] = ptCollect();

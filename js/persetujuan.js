@@ -240,19 +240,19 @@ function psjMMCard() {
 function psjRows(r, q) {
   q = (q || '').toLowerCase().trim();
   const f = r.filter(d => !q || (d[0] + ' ' + d[1]).toLowerCase().includes(q));
-  if (!f.length) return `<tr><td colspan="8" class="mt" style="text-align:center;padding:26px">${q ? 'Tidak ada hasil untuk pencarian tersebut.' : 'Belum ada survei yang selesai.'}</td></tr>`;
+  if (!f.length) return `<tr><td colspan="9" class="mt" style="text-align:center;padding:26px">${q ? 'Tidak ada hasil untuk pencarian tersebut.' : 'Belum ada survei yang selesai.'}</td></tr>`;
   return f.map((d, i) => {
     const S = SVS[d[0]], st = psjStat(d[0]), p = S.psj, pen = ptStat(d[0]);
     return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(psjJenis(d))}</td>` +
       `<td>${PL(pen[0], pen[1])}</td><td>${S.psjBa ? PL(S.psjBa.st == 'Selesai' ? 's-g' : 's-o', S.psjBa.st == 'Selesai' ? 'Selesai' : 'Draft') : '<span class="mt">Belum diunggah</span>'}</td>` +
-      `<td>${PL(st[0], st[1])}</td><td>${psjOk(d[0]) ? (a => PL(a[0], a[1]))(tksStat(d[0])) : '<span class="mt">Menunggu persetujuan</span>'}</td><td><div class="pt-ac"><button class="btn sm" data-psj="${esc(d[0])}">${p ? (p.st == 'Tersimpan' ? 'Lihat / Ubah' : 'Lanjutkan') : 'Input Persetujuan'}</button>${S.psjBa ? ptBaIcons(d[0], S.psjBa.st == 'Selesai', 'psjBa') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload Dokumen Persetujuan</button>`}</div></td></tr>`;
+      `<td>${PL(st[0], st[1])}</td><td>${kpknlRoute(d[0])?PL('s-b','KPKNL dipilih'):psjOk(d[0]) ? (a => PL(a[0], a[1]))(tksStat(d[0])) : '<span class="mt">Menunggu persetujuan</span>'}</td><td>${durCell(d[0],'approval')}</td><td><div class="pt-ac"><button class="btn sm" data-psj="${esc(d[0])}">${p ? (p.st == 'Tersimpan' ? 'Lihat / Ubah' : 'Lanjutkan') : 'Input Persetujuan'}</button>${psjOk(d[0]) ? `<button class="btn o sm" data-kpknl="${esc(d[0])}">${(RX[d[0]]||{}).kpknl?'Lihat Penilaian KPKNL':'Penilaian KPKNL'}</button>` : ''}${S.psjBa ? ptBaIcons(d[0], S.psjBa.st == 'Selesai', 'psjBa') : `<button class="btn o sm" data-ba="${esc(d[0])}">Upload Dokumen Persetujuan</button>`}</div></td></tr>`;
   }).join('');
 }
 function psjList(s) {
   const r = svRows().filter(d => SVS[d[0]].st == 'Selesai');
   s.innerHTML = HD('Persetujuan Kepala Daerah', '') + psjMMCard() +
     `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Permohonan</h2><small class="mt"></small></div><label class="sr2 pt-q"><svg class="i"><use href="#sq"></use></svg><input id="psj_q" placeholder="Cari nomor surat atau perangkat daerah…"></label></div>` +
-    `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Permohonan</th><th>Status Penelitian</th><th>Status Dokumen Persetujuan</th><th>Status Persetujuan</th><th>Penaksiran</th><th>Aksi</th></tr></thead><tbody id="psj_tb">${psjRows(r, '')}</tbody></table></div></div>`;
+    `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Nomor Surat / Pemohon</th><th>Jenis Permohonan</th><th>Status Penelitian</th><th>Status Dokumen Persetujuan</th><th>Status Persetujuan</th><th>Status Tahap Lanjutan</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody id="psj_tb">${psjRows(r, '')}</tbody></table></div></div>`;
   s.oninput = e => { if (e.target.id == 'psj_q') $('#psj_tb').innerHTML = psjRows(r, e.target.value); };
   s.onchange = e => {
     if (e.target.id != 'psj_file' || !e.target.files[0]) return;

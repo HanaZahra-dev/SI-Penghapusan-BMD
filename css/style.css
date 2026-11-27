@@ -67,6 +67,7 @@ td{padding:14px 12px;border-bottom:1px solid #eef2fa;font-size:13.5px}td small{d
 .stt{display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap}
 .Verifikasi{background:#fff2d3;color:#a96300}.Survei{background:#e1ecff;color:var(--bl_)}.Perbaikan{background:#ffe3e0;color:#c23a32}.Selesai{background:#dcf4e6;color:#178a55}
 .db{border:1px solid #c9d8f7;background:#fff;color:var(--bl);border-radius:8px;padding:5px 16px;font-weight:700;font-size:12.5px;transition:background .15s,color .15s}.db:hover{background:var(--bl);color:#fff}
+.kplocked{display:block;color:var(--tx);white-space:normal}
 .fb{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:14px}
 .fb input,.fb select{width:100%;border:1px solid var(--ln);border-radius:10px;padding:10px 12px;font:inherit;background:#fff;color:var(--ink);outline:0;transition:border-color .15s,box-shadow .15s}.fb input:focus,.fb select:focus{border-color:var(--bl);box-shadow:0 0 0 3px #2563eb22}
 .pgn{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--mt);font-size:12.5px;flex-wrap:wrap;gap:10px}.pgn div{display:flex;gap:6px}.pgn button{width:30px;height:30px;border-radius:8px;border:1px solid var(--ln);background:#fff}.pgn button.on{background:var(--bl);border-color:var(--bl);color:#fff}
@@ -555,6 +556,7 @@ html[data-theme="dark"] .dsel.no{background:rgba(239,68,68,.16);border-color:rgb
 .qg{flex:1 1 300px}
 .qg>span{display:block;font-size:12px;font-weight:700;color:var(--mt);margin-bottom:6px;letter-spacing:.02em}
 .qg>div{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sv-kib-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}.sv-kib-toolbar .sr2{width:min(100%,420px)}
 .qc{display:block;text-align:left;padding:11px 14px;border-radius:12px;border:1.5px solid var(--ln);background:#fff;color:var(--ink);cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s,box-shadow .15s}
 .qc b{display:block;font-size:14px}
 .qc small{display:block;font-size:12px;color:var(--mt);margin-top:1px}
@@ -1111,12 +1113,6 @@ html[data-theme="dark"] .kzjl select{background:var(--input);color:var(--ink)}
 .kkt input.kkn:disabled{opacity:.75}
 html[data-theme="dark"] .kkt input.kkn{background:var(--input);color:var(--ink)}
 
-/* Garis tabel dibuat lebih tegas agar batas baris dan kolom mudah dibaca */
-#app table{border:1px solid #b8c2cf}
-#app table th,#app table td{border:1px solid #b8c2cf}
-html[data-theme="dark"] #app table{border-color:#45546b}
-html[data-theme="dark"] #app table th,html[data-theme="dark"] #app table td{border-color:#45546b}
-
 /* Keep nested content inside the main panel without adding another card layer. */
 .cd .cd{background:transparent;border:0;border-radius:0;padding:0;box-shadow:none}
 html:not([data-theme="dark"]) #app .cd{background:transparent;border-color:transparent;box-shadow:none}
@@ -1130,3 +1126,18 @@ html:not([data-theme="dark"]) #app .cd{background:transparent;border-color:trans
 #det .det-type input[type="radio"]:checked{border-color:#1e40af}
 #det .det-type input[type="radio"]:checked::before{content:"";width:6px;height:6px;border-radius:50%;background:#1e40af}
 #det .det-type:hover,#det .det-type:has(input:checked){border-color:var(--ln);background:#fff}
+
+/* ===== Modul 3: Penghapusan > Penetapan (Usulan & Penetapan) ===== */
+#app .side nav .nav-submenu .nav-submenu{margin:0 0 2px 10px;padding-left:6px;border-left:1px solid rgba(255,255,255,.16)}
+#app .side nav .nav-submenu .nav-submenu .nav.subnav{padding-left:12px}
+.ph-filter .ff{max-width:760px}
+.ph-filter input[readonly]{background:#f3f6fb;color:var(--mt);cursor:not-allowed}
+.ph-list-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph-search{min-width:260px}
+.ph-size{height:40px;border:1px solid var(--ln);border-radius:10px;background:#fff;color:var(--ink);padding:0 10px}
+#phu .pt-t,#phs .pt-t{min-width:760px}
+#phu .ph-r,#phs .ph-r{cursor:pointer}
+#phu .ph-r.sel,#phs .ph-r.sel{background:#eaf1ff}
+#phu .ph-r.sel td,#phs .ph-r.sel td{border-bottom-color:#d9e5fb}
+#phu .ph-empty,#phs .ph-empty{text-align:center;color:var(--mt);padding:28px 12px;cursor:default}
+@media(max-width:700px){.ph-search{min-width:0;width:100%}.ph-list-tools{width:100%}.ph-size{width:100%}}

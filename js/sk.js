@@ -17,14 +17,20 @@ function skTgl(iso) {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? m[3] + ' ' + pjCap(PJ_BLN[+m[2] - 1]) + ' ' + m[1] : String(iso || '');
 }
-const skList = () => { pjSiap(); return OB.filter(p => p.no && kkAllDone(p)); };
+/* Jalur Kertas Kerja (OB) + jalur Penilaian KPKNL yang sudah disubmit (data manual dari kpknl.js) */
+const skList = () => { pjSiap(); return OB.filter(p => p.no && !kpknlRoute(p.no) && kkAllDone(p)).concat(typeof kpSaved == 'function' ? kpSaved() : []); };
 const skDok = no => SKN[no] || null;
 
 /* ---------- perhitungan lampiran dari objek & kertas kerja ---------- */
+/* Daftar objek ternormalisasi: dari Kertas Kerja (OB) atau dari input manual Penilaian KPKNL */
+function skObjs(p) {
+  if (p.kpknl) return p.items.map(x => ({ n: x.n, kib: x.kib, k: x.kode, th: x.tahun, kd: x.kondisi, bh: x.bahan, ton: kpKg(x), nl: Math.round(+x.nl || 0) }));
+  return p.o.map((o, i) => ({ n: o.n, kib: o.kib, k: o.k, th: o.th, kd: o.kd, bh: o.bh || o.mp, ton: kkQkg(o) || 0, nl: Math.round(kkNilai(p, i).nl || 0) }));
+}
 function skHitung(p) {
   const g = {}, daftar = [];
-  p.o.forEach((o, i) => {
-    const nl = Math.round(kkNilai(p, i).nl || 0), ton = kkQkg(o) || 0, bahan = o.bh || o.mp || '-';
+  skObjs(p).forEach(o => {
+    const nl = o.nl, ton = o.ton, bahan = o.bh || '-';
     const jenis = SK_JENIS_BANGUNAN.test(o.n || '') ? 'Material Gedung dan Bangunan' : 'Peralatan dan Mesin', key = jenis + '|' + skUp(bahan);
     const r = g[key] = g[key] || { jenis, bahan: skCapNama(bahan), jml: 0, ton: 0, nilai: 0 };
     r.jml++; r.ton += ton; r.nilai += nl;
@@ -44,7 +50,7 @@ function skDefault(p) {
   return {
     nopermohonan: p.no, tglpermohonan: ff.tgl || '', perihal: ff.pf || d[10] || p.pf || '',
     nobap: pen.nobap || '', tglbap: pen.tgl || '', nopersetujuan: pf.nomor || '', tglpersetujuan: pf.tgl || '', perihalpersetujuan: pf.perihal || '',
-    nolaporan: '', tgllaporan: '',
+    nolaporan: p.kpknl ? (p.kp.nomor || '') : '', tgllaporan: p.kpknl ? (p.kp.tgl || '') : '',
     opd: p.pd, alamat: alamatPermohonan(p.no) || p.al || '',
     uraian: n + ' (' + pjCap(pjTerbilang(n)) + ') Unit Peralatan dan Mesin Dalam Bentuk Limbah Padat (Scrap)',
     metode: semuaLangsung ? 'Langsung' : 'Lelang', nilailimit: h.limit || '',
@@ -124,8 +130,8 @@ function pgSk() {
   if (skCur && skList().find(p => p.no == skCur)) return skDetail(s);
   skCur = null;
   s.innerHTML = HD('SK Nilai Limit') +
-    ALR('Alur:', 'Pilih permohonan &rarr; periksa nomor, tanggal, perihal &rarr; Pratinjau &rarr; Unduh Word (.docx).') +
-    `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Permohonan</h2><small class="mt">Muncul setelah semua Kertas Kerja Penaksiran selesai.</small></div><label class="sr2 pt-q"><svg class="i"><use href="#sq"></use></svg><input id="sk_q" placeholder="Cari nomor permohonan atau perangkat daerah…"></label></div>` +
+    ALR('Alur:', 'Pilih permohonan &rarr; periksa isian &rarr; Simpan Draft untuk melanjutkan nanti, Selesai untuk menandai SK dibuat, atau Unduh Word (.docx).') +
+    `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Permohonan</h2><small class="mt">Muncul setelah semua Kertas Kerja Penaksiran selesai, atau Penilaian KPKNL disubmit beserta daftar barangnya.</small></div><label class="sr2 pt-q"><svg class="i"><use href="#sq"></use></svg><input id="sk_q" placeholder="Cari nomor permohonan atau perangkat daerah…"></label></div>` +
     `<div class="tw"><table class="pt-t"><thead><tr><th>No</th><th>Permohonan</th><th>Tanggal &amp; Perihal</th><th>Objek</th><th>Nilai Limit</th><th>Status SK</th><th>Aksi</th></tr></thead><tbody id="sk_tb">${skRows('')}</tbody></table></div></div>`;
   s.oninput = e => { if (e.target.id == 'sk_q') $('#sk_tb').innerHTML = skRows(e.target.value); };
   s.onchange = null;
@@ -140,7 +146,7 @@ function skIn(q, label, val, o) {
     : `<input id="sk_${q}" type="${o.t || 'text'}" value="${esc(val)}" placeholder="${esc(o.ph || '')}">`) + (o.note ? `<small class="mt">${o.note}</small>` : '') + `</label>`;
 }
 function skDetail(s) {
-  const no = skCur, p = OB.find(x => x.no == no), f = skF(p), h = skHitung(p), dok = skDok(no);
+  const no = skCur, p = skList().find(x => x.no == no), f = skF(p), h = skHitung(p), dok = skDok(no);
   const sec2 = (t, sub, body) => `<div class="cd pt-sec"><div class="ch"><div><h2>${t}</h2>${sub ? `<small class="mt">${sub}</small>` : ''}</div></div>${body}</div>`;
   const rekapHtml = `<div class="tw"><table><thead><tr><th>No</th><th>Jenis Barang</th><th>Jumlah</th><th>Bahan</th><th>Tonase (Kg)</th><th>Harga Taksiran/Kg</th><th>Nilai Taksiran</th></tr></thead><tbody>${h.rekap.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.jenis)}</td><td>${r.jml}</td><td>${esc(r.bahan)}</td><td>${skRp(r.ton, 2)}</td><td>${skRp(r.harga, 2)}</td><td>${skRp(r.nilai, 2)}</td></tr>`).join('')}<tr><td colspan="4"><b>TOTAL</b></td><td><b>${skRp(h.ton, 2)}</b></td><td></td><td><b>${skRp(h.total, 2)}</b></td></tr></tbody></table></div>`;
   s.innerHTML = `<div class="pt-hd"><button class="btn o sm" data-a="bk">← Kembali ke daftar</button><div><h1>SK Nilai Limit · ${esc(no)}</h1><p>${esc(p.pd)} · ${p.o.length} objek · ${dok ? 'Draft tersimpan ' + esc(dok.ts || '') : 'Belum disimpan'}</p></div></div>` +
@@ -148,22 +154,25 @@ function skDetail(s) {
     sec2('1. Surat Permohonan', 'Mengikuti data permohonan pengguna barang.', `<div class="ff">${skIn('nopermohonan', 'Nomor Permohonan', f.nopermohonan)}${skIn('tglpermohonan', 'Tanggal Permohonan', f.tglpermohonan, { t: 'date' })}${skIn('perihal', 'Perihal Permohonan', f.perihal, { t: 'area', full: 1 })}</div>`) +
     sec2('2. Dasar Pertimbangan Lainnya','', `<div class="ff">${skIn('nobap', 'Nomor BA Penelitian', f.nobap)}${skIn('tglbap', 'Tanggal BA Penelitian', f.tglbap, { t: 'date' })}${skIn('nopersetujuan', 'Nomor Persetujuan Wali Kota', f.nopersetujuan)}${skIn('tglpersetujuan', 'Tanggal Persetujuan Wali Kota', f.tglpersetujuan, { t: 'date' })}${skIn('perihalpersetujuan', 'Perihal Persetujuan', f.perihalpersetujuan, { t: 'area', full: 1 })}${skIn('nolaporan', 'Nomor Laporan Penilaian', f.nolaporan, { ph: 'Contoh: 000.2.3.2/7481-Bid.BMD' })}${skIn('tgllaporan', 'Tanggal Laporan Penilaian', f.tgllaporan, { t: 'date' })}</div>`) +
     sec2('3. Barang yang Ditetapkan', '', `<div class="ff">${skIn('opd', 'Perangkat Daerah', f.opd)}${skIn('metode', 'Permohonan Penjualan', f.metode, { opt: ['Lelang', 'Langsung'] })}${skIn('alamat', 'Alamat Perangkat Daerah', f.alamat, { full: 1, ph: 'Contoh: Jalan Pemuda Nomor 31, RT.01/RW.06, Tanah Sareal, Kota Bogor, Jawa Barat 16162' })}${skIn('uraian', 'Uraian Barang', f.uraian, { t: 'area', full: 1 })}</div>`) +
-    sec2('4. Nilai Limit', 'Total nilai taksiran dari Kertas Kerja: <b>' + RP(h.total) + '</b>. Nilai limit bawaan dibulatkan ke atas ribuan terdekat, sesuai contoh template.', `<div class="ff">${skIn('nilailimit', 'Nilai Limit (Rp)', f.nilailimit, { t: 'number', note: '<span id="sk_nlt">' + (+f.nilailimit > 0 ? esc(pjCap(pjTerbilang(+f.nilailimit)) + ' Rupiah') : '') + '</span>' })}</div>`) +
+    sec2('4. Nilai Limit', (p.kpknl ? 'Total nilai dari Daftar Barang Penilaian KPKNL: <b>' : 'Total nilai taksiran dari Kertas Kerja: <b>') + RP(h.total) + '</b>. Nilai limit bawaan dibulatkan ke atas ribuan terdekat, sesuai contoh template.', `<div class="ff">${skIn('nilailimit', 'Nilai Limit (Rp)', f.nilailimit, { t: 'number', note: '<span id="sk_nlt">' + (+f.nilailimit > 0 ? esc(pjCap(pjTerbilang(+f.nilailimit)) + ' Rupiah') : '') + '</span>' })}</div>`) +
     sec2('5. Penetapan', '', `<div class="ff">${skIn('nosk', 'Nomor Keputusan Wali Kota', f.nosk, { ph: 'Boleh dikosongkan, dapat diisi pada file Word' })}${skIn('tglsk', 'Tanggal Ditetapkan', f.tglsk, { t: 'date' })}</div>`) +
-    sec2('Lampiran (otomatis dari Kertas Kerja)', 'Rekap Tonase dan Daftar ' + h.daftar.length + ' barang dibuat otomatis pada lampiran dokumen.', rekapHtml) +
-    `<div class="sg-bar"><span>${dok ? 'Draft tersimpan' : 'Belum disimpan'}</span><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn o" data-a="reset">Muat Ulang dari Data Permohonan</button><button type="button" class="btn o" data-a="save">Simpan Draft</button><button type="button" class="btn o" data-a="prev">Pratinjau</button><button type="button" class="btn" data-a="docx">Unduh Word (.docx)</button></div></div>`;
+    sec2(p.kpknl ? 'Lampiran (otomatis dari Penilaian KPKNL)' : 'Lampiran (otomatis dari Kertas Kerja)', 'Rekap Tonase dan Daftar ' + h.daftar.length + ' barang dibuat otomatis pada lampiran dokumen.', rekapHtml) +
+    `<div class="sg-bar"><span>${dok ? 'Draft tersimpan' : 'Belum disimpan'}</span><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn o" data-a="done">Selesai</button><button type="button" class="btn o" data-a="save">Simpan Draft</button><button type="button" class="btn o" data-a="prev">Pratinjau</button><button type="button" class="btn" data-a="docx">Unduh Word (.docx)</button></div></div>`;
   s.oninput = e => { if (e.target.id == 'sk_nilailimit') { const n = +e.target.value, t = $('#sk_nlt'); if (t) t.textContent = n > 0 ? pjCap(pjTerbilang(n)) + ' Rupiah' : ''; } };
   s.onchange = null;
   s.onclick = e => {
     const b = e.target.closest('[data-a]'); if (!b) return;
     const a = b.dataset.a;
     if (a == 'bk') { skCur = null; return pgSk(); }
-    if (a == 'reset') return cfm('Muat ulang dari data permohonan?', 'Isian yang sudah diubah akan diganti dengan data terbaru dari permohonan dan modul sebelumnya.', () => { delete SKN[no]; Store.persist(); toast('Isian dimuat ulang dari data permohonan.'); pgSk(); }, 'Muat Ulang');
     const F = skCollect();
-    if (a == 'save') { SKN[no] = Object.assign(SKN[no] || {}, { f: F, ts: nowStr() }); Store.persist(); toast('Draft SK Nilai Limit tersimpan.', 'ok'); return pgSk(); }
+    if (a == 'save') { SKN[no] = Object.assign(SKN[no] || {}, { f: F, ts: nowStr() }); Store.persist(); toast('Draft SK Nilai Limit tersimpan.', 'ok'); skCur = null; return pgSk(); }
     const miss = skMiss(F); if (miss.length) return toast('Lengkapi dulu: ' + miss.join(', ') + '.', 'err');
     b.disabled = true;
     skDocx(p, F).then(async blob => {
+      if (a == 'done') {
+        SKN[no] = Object.assign(SKN[no] || {}, { f: F, ts: nowStr(), dl: true }); Store.persist();
+        toast('SK Nilai Limit selesai dibuat.', 'ok'); skCur = null; return pgSk();
+      }
       if (a == 'docx') {
         SKN[no] = Object.assign(SKN[no] || {}, { f: F, ts: nowStr(), dl: true }); Store.persist();
         const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = 'SK Nilai Limit - ' + no.replace(/[\\/:*?"<>|]/g, '-') + '.docx';

@@ -6,7 +6,7 @@ const TAMPIL_AKUN_DEMO = true;
 const ROLES = {
   pengguna_barang: {
     label: 'Pengguna Barang',
-    views: ['dash', 'list', 'form', 'det','pmp'],
+    views: ['dash', 'list', 'form', 'det','pmp', 'phu'],
     perms: ['permohonan.kelola'],           
     listDesc: 'Buat Permohonan',
     listSub: 'Permohonan yang sudah disimpan tampil di sini. Gunakan Edit untuk memperbaiki dan Ajukan Verifikasi untuk mengirim ke Admin.',
@@ -14,7 +14,7 @@ const ROLES = {
   },
   admin: {
     label: 'Admin',
-    views: ['dash', 'det', 'adm', 'sv', 'pt', 'psj', 'tksadm', 'soon', 'ob', 'kk', 'lpr', 'hp', 'rf','dm', 'sk', 'lel', 'lgs'],  
+    views: ['dash', 'det', 'adm', 'sv', 'pt', 'psj', 'tksadm', 'soon', 'ob', 'kk', 'lpr', 'kpknl', 'hp', 'rf','dm', 'sk', 'lel', 'lgs', 'phua', 'phs', 'phsl'],  
     perms: ['verifikasi'],
     listDesc: 'Pantau seluruh permohonan yang diajukan Pengguna Barang. Draft milik pemohon tidak ditampilkan.',
     listSub: 'Daftar permohonan yang sudah diajukan.',

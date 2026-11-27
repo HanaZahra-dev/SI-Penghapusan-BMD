@@ -16,16 +16,31 @@ const TKS_COLS = ['KIB ID', 'Kode Barang', 'Nama Barang', 'Bahan', 'Tahun', 'Kon
 
 /* Rujukan ke Persetujuan Kepala Daerah: nomor dan tanggal surat persetujuan */
 const psjRef = (no, inline) => { const p = (SVS[no] || {}).psj; if (!p || p.st != 'Tersimpan') return '<span class="mt">-</span>'; const f = p.f || {}, tg = f.tgl ? psjTgl(f.tgl) : ''; return inline ? `<b>${esc(f.nomor || '-')}</b>${tg ? ' · ' + esc(tg) : ''}` : `<b>${esc(f.nomor || '-')}</b>${tg ? `<div class="mt" style="font-size:12px">${esc(tg)}</div>` : ''}`; };
+const tksTglFmt = v => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : (v || ''); };
 const tksNz = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
 const tksX = no => (RX[no] || {}).tks || null;
+const tksIsC = r => /^KIB[-\s]?C/i.test(String((r && r.kib) || ''));   /* KIB C = Gedung dan Bangunan */
 const tksFromKib = no => (((RX[no] || {}).f || {}).kib || []).map(q => { const r = K[q]; return { kib: r[0], kode: r[1], nama: r[2], bahan: '', tahun: r[3], kondisi: r[4], qty: r[5], sat: r[6], tonase: '', satt: 'Kg' }; });
-const tksRows = no => { const t = tksX(no), rows = t && Array.isArray(t.rows) ? t.rows : tksFromKib(no); rows.forEach(r => { r.bahan = tksBahan(r.bahan); }); return rows; };
+const tksRows = no => {
+  const t = tksX(no), rows = t && Array.isArray(t.rows) ? t.rows : tksFromKib(no);
+  let induk = null;
+  rows.forEach(r => {
+    r.bahan = tksBahan(r.bahan);
+    if (!r.dup) { induk = r; return; }
+    /* Hanya KIB C (Gedung dan Bangunan): Kuantitas dan Satuan bahan tambahan mengikuti barang induk. Data lama yang masih '-' ikut dibetulkan */
+    if (tksIsC(r) && induk && induk.kib == r.kib && induk.nama == r.nama) {
+      if (!r.qty || r.qty == '-') r.qty = induk.qty;
+      if (!r.sat || r.sat == '-') r.sat = induk.sat;
+    }
+  });
+  return rows;
+};
 function tksEnsure(no) {
   const x = RX[no] = RX[no] || { h: [] };
-  if (!x.tks) x.tks = { st: 'Draft', saved: false, src: 'permohonan', rows: tksFromKib(no), doc: null, verif: { st: 'Belum Diajukan', doc: '', docNote: '', check: [], notes: [] } };
+  if (!x.tks) x.tks = { st: 'Draft', saved: false, src: 'permohonan', rows: tksFromKib(no), doc: null, verif: { st: 'Belum Diajukan', doc: '', docNote: '', surat: '', suratNote: '', check: [], notes: [] } };
   else {
     if (x.tks.saved == null) x.tks.saved = true;
-    if (!x.tks.verif) x.tks.verif = { st: x.tks.st == 'Diajukan' ? 'Menunggu Verifikasi' : 'Belum Diajukan', doc: '', docNote: '', check: [], notes: [] };
+    if (!x.tks.verif) x.tks.verif = { st: x.tks.st == 'Diajukan' ? 'Menunggu Verifikasi' : 'Belum Diajukan', doc: '', docNote: '', surat: '', suratNote: '', check: [], notes: [] };
   }
   x.tks.verif.check = x.tks.verif.check || [];
   x.tks.verif.notes = x.tks.verif.notes || [];
@@ -78,9 +93,9 @@ function tksParse(sheets) {
     const nama = g(r, 'nama'), raw = g(r, 'tonase'), n = tksNum(raw), bv = g(r, 'bahan'), sv = g(r, 'satt').toLowerCase();
     let base;
     if (nama) base = { kib: g(r, 'kib') || '-', kode: g(r, 'kode') || '-', nama, tahun: g(r, 'tahun') || '-', kondisi: kon(g(r, 'kondisi')) || '-', qty: g(r, 'qty') || '-', sat: g(r, 'sat') || '-' };
-    else if (prev && bv && !isNaN(n)) base = { ...prev, qty: '-', sat: '-', dup: true };   /* baris lanjutan: bahan lain pada barang yang sama */
+    else if (prev && bv && !isNaN(n)) base = { ...prev, ...(tksIsC(prev) ? {} : { qty: '-', sat: '-' }), dup: true };   /* baris lanjutan: bahan lain pada barang yang sama */
     else return;
-    if (nama && prev && base.kib !== '-' && base.kib === prev.kib && base.nama === prev.nama) base.dup = true;   /* KIB dan nama sama dengan baris sebelumnya = bahan tambahan */
+    if (nama && prev && base.kib !== '-' && base.kib === prev.kib && base.nama === prev.nama) { base.dup = true; if (tksIsC(base)) { if (base.qty == '-') base.qty = prev.qty; if (base.sat == '-') base.sat = prev.sat; } }   /* KIB dan nama sama dengan baris sebelumnya = bahan tambahan */
     if (nama) prev = base;
     if (raw && isNaN(n)) warn++;
     let satt = 'Kg'; if (/^ton$/.test(sv)) satt = 'Ton'; else if (/^unit$/.test(sv)) satt = 'Unit'; else if (sv && !/^(kg|kilogram|kilo)$/.test(sv)) warn++;
@@ -109,13 +124,13 @@ async function tksTemplate(no, type) {
 }
 
 /* ---------- Pratinjau Surat Tanggung Jawab Mutlak ---------- */
-function tksPreview(no) {
-  const T = tksX(no), doc = T && T.doc, b = doc && doc.files && doc.files[0];
+function tksPreview(no, which) {
+  const T = tksX(no), doc = T && (which == 'surat' ? T.surat : T.doc), b = doc && doc.files && doc.files[0];
   if (!b) return toast('Berkas belum tersedia untuk dipratinjau.');
   pvClose(); pvUrl = URL.createObjectURL(b);
   const isImg = /^image\//.test(b.type || doc.ty || ''), nm = esc(doc.name);
   const m = document.createElement('div'); m.id = 'pvm'; m.className = 'pvm';
-  m.innerHTML = `<div class="pvb" role="dialog" aria-modal="true" aria-label="Pratinjau dokumen"><div class="pvh"><div><b>Surat Tanggung Jawab Mutlak</b><small class="mt">${esc(no)} · ${nm}</small></div><div class="pva"><a class="btn o sm" href="${pvUrl}" download="${nm}">Unduh</a><a class="btn o sm" href="${pvUrl}" target="_blank" rel="noopener">Tab baru</a><button type="button" class="btn sm" data-pv="x">Tutup</button></div></div>` +
+  m.innerHTML = `<div class="pvb" role="dialog" aria-modal="true" aria-label="Pratinjau dokumen"><div class="pvh"><div><b>${which == 'surat' ? 'Surat Permohonan Penaksiran' : 'Surat Tanggung Jawab Mutlak'}</b><small class="mt">${esc(no)} · ${nm}</small></div><div class="pva"><a class="btn o sm" href="${pvUrl}" download="${nm}">Unduh</a><a class="btn o sm" href="${pvUrl}" target="_blank" rel="noopener">Tab baru</a><button type="button" class="btn sm" data-pv="x">Tutup</button></div></div>` +
     (isImg ? `<div class="pvf" style="overflow:auto;text-align:center;background:#f1f4fa"><img src="${pvUrl}" alt="${nm}" style="max-width:100%"></div>` : `<iframe class="pvf" src="${pvUrl}" title="Pratinjau ${nm}"></iframe>`) + `</div>`;
   m.onclick = e => { if (e.target === m || e.target.closest('[data-pv=x]')) pvClose(); };
   document.body.appendChild(m);
@@ -124,13 +139,13 @@ function tksPreview(no) {
 /* ---------- Halaman 1: daftar permohonan ---------- */
 function tksList(s) {
   /* Hanya permohonan yang Persetujuan Kepala Daerah-nya sudah terbit (atau yang sudah telanjur diisi) */
-  const r = [...new Map(vis().filter(d => d[6] != 'Draft' && (psjOk(d[0]) || tksX(d[0]))).map(d => [d[0], d])).values()];
+  const r = [...new Map(vis().filter(d => d[6] != 'Draft' && !kpknlRoute(d[0]) && (psjOk(d[0]) || tksX(d[0]))).map(d => [d[0], d])).values()];
   s.innerHTML = HD('Permohonan Penaksiran', 'Lengkapi Surat Tanggung Jawab Mutlak dan tonase barang untuk setiap permohonan.') +
     `<div class="cd"><div class="ch"><div><h2 style="font-size:20px">Daftar Permohonan</h2><small class="mt"></small></div></div>` +
-    (r.length ? `<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Jenis</th><th>Persetujuan Kepala Daerah</th><th>Status Permohonan</th><th>Status Penaksiran</th><th>Aksi</th></tr></thead><tbody>${r.map((d, i) => {
+    (r.length ? `<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Jenis</th><th>Persetujuan Kepala Daerah</th><th>Status Permohonan</th><th>Status Penaksiran</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody>${r.map((d, i) => {
       const t = tksX(d[0]), p = tksStat(d[0]);
       const aksi = t && t.verif && t.verif.st == 'Ditolak' ? 'Perbaiki & Ajukan Ulang' : !t ? 'Isi Permohonan' : t.st == 'Diajukan' ? 'Lihat' : t.st == 'Draft' ? 'Edit' : 'Lanjutkan';
-      return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(d[4])}</td><td>${psjRef(d[0])}</td><td>${st(d[6])}</td><td>${PL(p[0], p[1])}</td><td><button class="btn sm" data-tkn="${esc(d[0])}">${aksi}</button></td></tr>`;
+      return `<tr><td>${i + 1}</td><td><b>${esc(d[0])}</b><div class="mt" style="font-size:12px">${esc(d[1])}</div></td><td>${esc(d[4])}</td><td>${psjRef(d[0])}</td><td>${st(d[6])}</td><td>${PL(p[0], p[1])}</td><td>${durCell(d[0],'tks')}</td><td><button class="btn sm" data-tkn="${esc(d[0])}">${aksi}</button></td></tr>`;
     }).join('')}</tbody></table></div>` : EM('Belum ada permohonan', 'Permohonan muncul di sini setelah Persetujuan Kepala Daerah terbit.')) + '</div>';
   s.onclick = e => { const b = e.target.closest('[data-tkn]'); if (b) { const t = tksX(b.dataset.tkn); tksCur = b.dataset.tkn; tksMode = t && t.src == 'excel' ? 'excel' : 'manual'; pgPerpen(); window.scrollTo(0, 0); } };
 }
@@ -147,14 +162,20 @@ function tksDetail(s) {
   const docRow = `<div class="dr${doc ? ' y' : ''}"><span class="dn">1</span><div class="dm"><b>Surat Tanggung Jawab Mutlak</b><small class="mt">${doc ? esc(doc.name) + ' · ' + tksSize(doc.size || 0) : 'Belum diunggah (PDF, JPG, atau PNG, maksimal 10 MB)'}</small><span class="tpl"><button type="button" class="lk" data-tpl="sptjm">Lihat format</button><a class="lk" href="assets/template/Template_SPTJM_dan_Daftar_Tonase.docx" download="Template SPTJM dan Daftar Tonase.docx">Unduh template</a></span></div><div class="da">` +
     (doc && doc.files && doc.files[0] ? '<button type="button" class="btn o sm" data-tk="pv">Lihat</button>' : '') +
     (ro ? '' : `<label class="btn o sm" style="cursor:pointer">${doc ? 'Ganti' : 'Upload'}<input type="file" id="tk_doc" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/png,image/jpeg" hidden></label>${doc ? '<button type="button" class="btn o sm" data-tk="deldoc">Hapus</button>' : ''}`) + `</div></div>`;
+  const sr = t.surat, srRow = `<div class="dr${sr ? ' y' : ''}"><span class="dn">1</span><div class="dm"><b>Surat Permohonan Penaksiran</b><small class="mt">${sr ? esc(sr.name) + ' · ' + tksSize(sr.size || 0) : 'Belum diunggah (PDF, JPG, atau PNG, maksimal 10 MB)'}</small></div><div class="da">` +
+    (sr && sr.files && sr.files[0] ? '<button type="button" class="btn o sm" data-tk="pvs">Lihat</button>' : '') +
+    (ro ? '' : `<label class="btn o sm" style="cursor:pointer">${sr ? 'Ganti' : 'Upload'}<input type="file" id="tk_surat" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/png,image/jpeg" hidden></label>${sr ? '<button type="button" class="btn o sm" data-tk="delsurat">Hapus</button>' : ''}`) + `</div></div>`;
+  const srFields = `<div class="ff" style="margin-top:14px"><label class="l2">Nomor Surat Permohonan Penaksiran<input type="text" id="tk_nosurat" maxlength="100" value="${esc(t.nomorSurat || '')}" placeholder="Contoh: 027/123/Dinas/2026"${dis}></label><label class="l2">Tanggal Penaksiran<input type="date" id="tk_tglpen" value="${esc(t.tglPenaksiran || '')}"${dis}></label></div>`;
+  const srSec = sec('Surat Permohonan Penaksiran', ro ? '' : 'Isi nomor surat dan tanggal penaksiran, lalu unggah Surat Permohonan Penaksiran (PDF/JPG/PNG).', `<span class="stt ${sr && t.nomorSurat && t.tglPenaksiran ? 's-g' : 's-n'}">${sr && t.nomorSurat && t.tglPenaksiran ? 'Lengkap' : 'Belum lengkap'}</span>`) + `<div class="drs">${srRow}${rej && vf.surat == 'no' ? `<div class="rjn" style="margin:6px 0 0"><b>Dokumen ditolak.</b> ${esc(vf.suratNote || 'Tidak sesuai.')}</div>` : ''}</div>${srFields}</div>`;
   const imp = ro ? '' : `<div class="tks-seg" role="group" aria-label="Cara pengisian"><button type="button" data-tm="manual" class="${tksMode == 'manual' ? 'on' : ''}">Isi Manual</button><button type="button" data-tm="excel" class="${tksMode == 'excel' ? 'on' : ''}">Import Excel</button></div>` +
     (tksMode == 'excel' ? `<div class="tks-imp"><div class="pt-bar" style="margin:0"><label class="btn sm" style="cursor:pointer">Pilih File Excel<input type="file" id="tk_xl" accept=".xlsx" hidden></label><button type="button" class="btn o sm" data-tk="tpl">Unduh Template Excel</button>${t && t.src == 'excel' ? '<button type="button" class="btn o sm" data-tk="reset">Kembalikan data permohonan</button>' : ''}</div>${t && t.src == 'excel' && t.srcName ? '<p class="mt" style="font-size:12px;margin:8px 0 0">Terakhir diimpor: <b>' + esc(t.srcName) + '</b></p>' : ''}</div>` : '');
   const tbl = rows.length ? `<div class="tw"><table class="kvt"><thead><tr><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Bahan</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th><th>Tonase</th><th>Satuan Tonase</th>${ro ? '' : '<th></th>'}</tr></thead><tbody>${rows.map((r, i) => { const rn = rjNote(r, i); return `<tr${rn != null ? ' class="rjrow"' : ''}><td class="mono"><b>${esc(r.kib)}</b></td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b>${r.dup ? '<small class="mt">Bahan tambahan pada barang yang sama</small>' : ''}${rn != null ? `<div class="rjn" style="margin:6px 0 0"><b>Barang ditolak.</b> ${esc(rn)}</div>` : ''}</td><td><input class="tkn" type="text" style="width:150px;text-transform:uppercase" maxlength="80" autocapitalize="characters" data-tb="${i}" value="${esc(r.bahan)}" placeholder="Contoh: Besi" aria-label="Bahan ${esc(r.nama)}"${dis}></td><td>${esc(r.tahun)}</td><td>${esc(r.kondisi)}</td><td>${esc(r.qty)}</td><td>${esc(r.sat)}</td>` +
     `<td><input class="tkn" type="number" min="0" step="any" inputmode="decimal" data-ti="${i}" value="${esc(r.tonase)}" placeholder="0" aria-label="Tonase ${esc(r.nama)}"${dis}></td>` +
-    `<td><select class="dsel" data-ts="${i}" aria-label="Satuan tonase ${esc(r.nama)}"${dis}>${TKS_SAT.map(o => `<option${o == r.satt ? ' selected' : ''}>${o}</option>`).join('')}</select></td>${ro ? '' : `<td><div class="mtg">${r.dup ? `<button type="button" class="db" data-tdel="${i}">Hapus</button>` : ''}</div></td>`}</tr>`; }).join('')}</tbody></table></div><div class="kvs" id="tk_sum">${tksSumHtml(no)}</div>`
+    `<td><select class="dsel" data-ts="${i}" aria-label="Satuan tonase ${esc(r.nama)}"${dis}>${TKS_SAT.map(o => `<option${o == r.satt ? ' selected' : ''}>${o}</option>`).join('')}</select></td>${ro ? '' : `<td><div class="mtg">${/^KIB[-\s]?C/i.test(String(r.kib)) ? `<button type="button" class="btn o sm" data-tdup="${i}" title="Tambah bahan lain untuk barang ini" aria-label="Tambah bahan ${esc(r.nama)}">+ Bahan</button>` : ''}${r.dup ? `<button type="button" class="db" data-tdel="${i}">Hapus</button>` : ''}</div></td>`}</tr>`; }).join('')}</tbody></table></div><div class="kvs" id="tk_sum">${tksSumHtml(no)}</div>`
     : EM('Belum ada barang', ro ? 'Tidak ada data barang.' : 'Pilih "Import Excel" lalu unggah file untuk mengisi daftar barang.');
   s.innerHTML = HD('Permohonan Penaksiran', no + ' · ' + d[1], '<button class="btn o" data-a="bk">← Kembali</button>') +
-    sec('Ringkasan Permohonan', ro ? 'Permohonan penaksiran sudah diajukan. Tampilan hanya untuk dilihat.' : '', st(d[6])) + `<dl><dt>Jenis</dt><dd>${esc(d[4])}</dd><dt>Tanggal Surat</dt><dd>${esc(d[5])}</dd><dt>Perangkat Daerah</dt><dd>${esc(d[1])}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd><dt>Persetujuan Kepala Daerah</dt><dd>${psjRef(no, true)}</dd><dt>Status Penaksiran</dt><dd>${PL(p[0], p[1])}</dd></dl>${t.verif.st == 'Ditolak' ? `<div class="al2 rjb" style="margin-top:14px"><b>Permohonan penaksiran ditolak Admin.</b> ${esc(t.verif.cat || 'Perbaiki dokumen atau data barang, lalu ajukan ulang.')}${nRej || vf.doc == 'no' ? `<div style="margin-top:4px">${vf.doc == 'no' ? 'Dokumen perlu diperbaiki. ' : ''}${nRej ? nRej + ' barang ditolak, lihat alasannya pada masing-masing barang di tabel Tonase Barang.' : ''}</div>` : ''}</div>` : ''}</div>` +
+    sec('Ringkasan Permohonan', ro ? 'Permohonan penaksiran sudah diajukan. Tampilan hanya untuk dilihat.' : '', st(d[6])) + `<dl><dt>Jenis</dt><dd>${esc(d[4])}</dd><dt>Tanggal Surat</dt><dd>${esc(d[5])}</dd><dt>Perangkat Daerah</dt><dd>${esc(d[1])}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd><dt>Persetujuan Kepala Daerah</dt><dd>${psjRef(no, true)}</dd><dt>Nomor Surat Penaksiran</dt><dd>${esc(t.nomorSurat || '-')}</dd><dt>Tanggal Penaksiran</dt><dd>${esc(t.tglPenaksiran ? tksTglFmt(t.tglPenaksiran) : '-')}</dd><dt>Status Penaksiran</dt><dd>${PL(p[0], p[1])}</dd></dl>${t.verif.st == 'Ditolak' ? `<div class="al2 rjb" style="margin-top:14px"><b>Permohonan penaksiran ditolak Admin.</b> ${esc(t.verif.cat || 'Perbaiki dokumen atau data barang, lalu ajukan ulang.')}${nRej || vf.doc == 'no' || vf.surat == 'no' ? `<div style="margin-top:4px">${vf.doc == 'no' || vf.surat == 'no' ? 'Dokumen perlu diperbaiki. ' : ''}${nRej ? nRej + ' barang ditolak, lihat alasannya pada masing-masing barang di tabel Tonase Barang.' : ''}</div>` : ''}</div>` : ''}</div>` +
+    srSec +
     sec('Dokumen', ro ? '' : 'Unduh template SPTJM dan Daftar Tonase, isi dan tanda tangani, lalu unggah hasilnya (PDF/JPG/PNG).', `<span class="stt ${doc ? 's-g' : 's-n'}">${doc ? '1/1 diunggah' : '0/1 diunggah'}</span>`) + `<div class="drs">${docRow}${rej && vf.doc == 'no' ? `<div class="rjn" style="margin:6px 0 0"><b>Dokumen ditolak.</b> ${esc(vf.docNote || 'Tidak sesuai.')}</div>` : ''}</div></div>` +
     sec('Tonase Barang', ro ? '' : 'Isi tonase dan satuan tiap barang, atau import dari Excel.', rows.length ? `<span class="stt s-b">${rows.length} Barang</span>` : '') + imp + tbl + '</div>' +
     (ro ? '' : `<div style="text-align:right;margin-bottom:20px;display:flex;gap:10px;justify-content:flex-end"><button class="btn o" data-a="draft">Simpan Draft</button><button class="btn" data-a="ajukan">${t.verif.st == 'Ditolak' ? 'Ajukan Ulang' : 'Ajukan Permohonan Penaksiran'}</button></div>`);
@@ -170,6 +191,15 @@ function tksDetail(s) {
       tksSyncActions(s, no);
       Store.persist(); toast('Surat Tanggung Jawab Mutlak diunggah.'); return tksDetail(s);
     }
+    if (el.id == 'tk_surat') {
+      const f = el.files[0]; el.value = ''; if (!f) return;
+      if (!/^(application\/pdf|image\/(png|jpeg))$/.test(f.type)) return toast('Format harus PDF, JPG, atau PNG.');
+      if (f.size > TKS_DOC_MAX) return toast('Ukuran berkas maksimal 10 MB.');
+      const T = tksEnsure(no); T.surat = { name: f.name, ty: f.type, size: f.size, files: [f] }; T.saved = false;
+      tksSyncActions(s, no);
+      Store.persist(); toast('Surat Permohonan Penaksiran diunggah.'); return tksDetail(s);
+    }
+    if (el.id == 'tk_tglpen') { const T = tksEnsure(no); T.tglPenaksiran = el.value; T.saved = false; tksSyncActions(s, no); return; }
     if (el.id == 'tk_xl') {
       const f = el.files[0]; el.value = ''; if (!f) return;
       return f.arrayBuffer().then(ptXlsxAll).then(tksParse).then(res => {
@@ -181,19 +211,20 @@ function tksDetail(s) {
     const si = el.dataset && el.dataset.ts; if (si != null) { const T = tksEnsure(no); T.rows[+si].satt = el.value; T.saved = false; const sm = $('#tk_sum'); if (sm) sm.innerHTML = tksSumHtml(no); tksSyncActions(s, no); }
   };
    s.oninput = e => {
+    if (!ro && e.target.id == 'tk_nosurat') { const T = tksEnsure(no); T.nomorSurat = e.target.value; T.saved = false; tksSyncActions(s, no); return; }
     const sb = e.target.dataset && e.target.dataset.tb; if (!ro && sb != null) { const T = tksEnsure(no), bahan = tksBahan(e.target.value); e.target.value = bahan; T.rows[+sb].bahan = bahan; T.saved = false; tksSyncActions(s, no); return; }
     const el = e.target, i = el.dataset && el.dataset.ti; if (ro || i == null) return;
     const T = tksEnsure(no); T.rows[+i].tonase = el.value; T.saved = false;
     const sm = $('#tk_sum'); if (sm) sm.innerHTML = tksSumHtml(no);
     tksSyncActions(s, no);
   };
-   
+  
   s.onclick = e => {
     const tm = e.target.closest('[data-tm]'); if (tm && !ro) { tksMode = tm.dataset.tm; return tksDetail(s); }
     const du = e.target.closest('[data-tdup]'), dd = e.target.closest('[data-tdel]');
     if ((du || dd) && !ro) {
       const T = tksEnsure(no);
-      if (du) { const i = +du.dataset.tdup, r0 = T.rows[i]; if (r0) T.rows.splice(i + 1, 0, { ...r0, qty: '-', sat: '-', bahan: '', tonase: '', satt: 'Kg', dup: true }); }
+      if (du) { const i = +du.dataset.tdup, r0 = T.rows[i]; let at = i + 1; while (T.rows[at] && T.rows[at].dup && T.rows[at].kib == r0.kib && T.rows[at].nama == r0.nama) at++; if (r0) T.rows.splice(at, 0, { ...r0, qty: r0.qty, sat: r0.sat, bahan: '', tonase: '', satt: 'Kg', dup: true }); }
       else { const i = +dd.dataset.tdel; if (T.rows[i] && T.rows[i].dup) T.rows.splice(i, 1); }
       T.saved = false; Store.persist(); return tksDetail(s);
     }
@@ -201,7 +232,9 @@ function tksDetail(s) {
     if (tk) {
       const a = tk.dataset.tk;
       if (a == 'pv') return tksPreview(no);
+      if (a == 'pvs') return tksPreview(no, 'surat');
       if (ro) return;
+      if (a == 'delsurat') return cfm('Hapus surat?', 'Surat Permohonan Penaksiran yang sudah diunggah akan dihapus.', () => { const T = tksX(no); if (T && T.st != 'Diajukan') { T.surat = null; T.saved = false; Store.persist(); toast('Surat dihapus.'); tksDetail(s); } }, 'Hapus');
       if (a == 'deldoc') return cfm('Hapus dokumen?', 'Surat Tanggung Jawab Mutlak yang sudah diunggah akan dihapus.', () => { const T = tksX(no); if (T && T.st != 'Diajukan') { T.doc = null; T.saved = false; Store.persist(); toast('Dokumen dihapus.'); tksDetail(s); } }, 'Hapus');
       if (a == 'tpl') return tksTemplate(no).then(b => { const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = 'Template Tonase Barang - ' + no.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(l.href), 4000); }).catch(err => { console.error(err); toast('Gagal membuat template Excel.'); });
       if (a == 'reset') return cfm('Kembalikan data permohonan?', 'Isi tabel dari Excel akan diganti dengan barang pada permohonan, dan tonase yang sudah diisi dikosongkan.', () => { const T = tksX(no); if (T && T.st != 'Diajukan') { T.rows = tksFromKib(no); T.src = 'permohonan'; T.srcName = ''; T.saved = false; Store.persist(); toast('Data permohonan dikembalikan.'); tksDetail(s); } }, 'Kembalikan');
@@ -213,6 +246,9 @@ function tksDetail(s) {
     if (a == 'draft') { T.st = 'Draft'; T.saved = true; T.ts = nowStr(); Store.persist(); toast('Draft permohonan penaksiran disimpan.'); tksCur = null; return pgPerpen(); }
     if (!T.saved) return toast('Simpan draft terlebih dahulu sebelum mengajukan permohonan penaksiran.');
     const rr = T.rows, kosong = rr.filter(r => !(tksNum(r.tonase) > 0));
+    if (!tksNz(T.nomorSurat)) return toast('Isi nomor Surat Permohonan Penaksiran terlebih dahulu.');
+    if (!T.tglPenaksiran) return toast('Isi tanggal penaksiran terlebih dahulu.');
+    if (!T.surat) return toast('Unggah Surat Permohonan Penaksiran terlebih dahulu.');
     if (!T.doc) return toast('Unggah Surat Tanggung Jawab Mutlak terlebih dahulu.');
     if (!rr.length) return toast('Belum ada barang. Import Excel untuk mengisi daftar barang.');
     const tanpaBahan = rr.filter(r => !r.bahan);
@@ -220,7 +256,7 @@ function tksDetail(s) {
     if (kosong.length) return toast('Isi tonase (lebih dari 0) untuk: ' + kosong.slice(0, 3).map(r => r.nama).join(', ') + (kosong.length > 3 ? ' dan ' + (kosong.length - 3) + ' barang lain' : '') + '.');
     cfm('Ajukan permohonan penaksiran?', 'Data akan dikunci dan tidak dapat diubah lagi.', () => {
       const U = tksX(no); if (!U || U.st == 'Diajukan' || !U.saved) return; U.st = 'Diajukan'; U.ts = nowStr();
-      U.verif = { st: 'Menunggu Verifikasi', doc: '', docNote: '', check: [], notes: [], cat: '', ts: nowStr() };
+      U.verif = { st: 'Menunggu Verifikasi', doc: '', docNote: '', surat: '', suratNote: '', check: [], notes: [], ts: nowStr() };
       if (typeof hs == 'function') hs(no, 'Permohonan Penaksiran diajukan pengguna barang', '');
       Store.persist(); toast('Permohonan penaksiran diajukan.'); tksCur = null; pgPerpen();
     }, 'Ajukan');
@@ -234,17 +270,17 @@ Verifikasi Penaksiran bisa di save */
 const tksAdminVerif = no => {
   const T = tksX(no);
   if (!T) return null;
-  if (!T.verif) T.verif = { st: T.st == 'Diajukan' ? 'Menunggu Verifikasi' : 'Belum Diajukan', doc: '', docNote: '', check: [], notes: [] };
+  if (!T.verif) T.verif = { st: T.st == 'Diajukan' ? 'Menunggu Verifikasi' : 'Belum Diajukan', doc: '', docNote: '', surat: '', suratNote: '', check: [], notes: [] };
   T.verif.check = T.verif.check || [];
   T.verif.notes = T.verif.notes || [];
   return T.verif;
 };
 function tksAdminList(s) {
   const all = [...new Map(R.map((d, i) => ({ d, i, T: tksX(d[0]), V: tksAdminVerif(d[0]) })).map(x => [x.d[0], x])).values()];
-  const rows = all.filter(x => x.T && (x.T.st == 'Diajukan' || x.V && x.V.st == 'Ditolak'));
+  const rows = all.filter(x => !kpknlRoute(x.d[0]) && x.T && (x.T.st == 'Diajukan' || x.V && x.V.st == 'Ditolak'));
   const pending = rows.filter(x => x.T.st == 'Diajukan' && (!x.V || x.V.st == 'Menunggu Verifikasi' || x.V.st == 'Belum Diajukan'));
   const done = rows.filter(x => x.V && ['Disetujui', 'Ditolak'].includes(x.V.st));
-  const table = (list, processed) => list.length ? `<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Barang</th><th>Status Verifikasi</th><th>Aksi</th></tr></thead><tbody>${list.map((x, i) => `<tr><td>${i + 1}</td><td><b>${esc(x.d[0])}</b></td><td>${esc(x.d[5])}</td><td>${esc(x.d[1])}</td><td>${Array.isArray(x.T.rows) ? x.T.rows.length : 0}</td><td>${processed ? PL(x.V.st == 'Disetujui' ? 's-g' : 's-r', x.V.st) : x.V.draft ? PL('s-b', 'Draft Verifikasi') : PL('s-o', 'Menunggu Verifikasi')}</td><td><button class="btn ${processed ? 'o ' : ''}sm" data-tkad="${esc(x.d[0])}">${processed ? 'Lihat' : x.V.draft ? 'Lanjutkan' : 'Periksa'}</button></td></tr>`).join('')}</tbody></table></div>` : EM(processed ? 'Belum ada hasil verifikasi' : 'Tidak ada permohonan menunggu', processed ? 'Hasil verifikasi penaksiran akan muncul di sini.' : 'Permohonan penaksiran yang sudah diajukan pengguna barang akan muncul di sini.');
+  const table = (list, processed) => list.length ? `<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Barang</th><th>Status Verifikasi</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody>${list.map((x, i) => `<tr><td>${i + 1}</td><td><b>${esc(x.d[0])}</b></td><td>${esc(x.d[5])}</td><td>${esc(x.d[1])}</td><td>${Array.isArray(x.T.rows) ? x.T.rows.length : 0}</td><td>${processed ? PL(x.V.st == 'Disetujui' ? 's-g' : 's-r', x.V.st) : x.V.draft ? PL('s-b', 'Draft Verifikasi') : PL('s-o', 'Menunggu Verifikasi')}</td><td>${durCell(x.d[0],'tks')}</td><td><button class="btn ${processed ? 'o ' : ''}sm" data-tkad="${esc(x.d[0])}">${processed ? 'Lihat' : x.V.draft ? 'Lanjutkan' : 'Periksa'}</button></td></tr>`).join('')}</tbody></table></div>` : EM(processed ? 'Belum ada hasil verifikasi' : 'Tidak ada permohonan menunggu', processed ? 'Hasil verifikasi penaksiran akan muncul di sini.' : 'Permohonan penaksiran yang sudah diajukan pengguna barang akan muncul di sini.');
   s.innerHTML = HD('Verifikasi Permohonan Penaksiran', '') +
     sec('Menunggu Verifikasi', `${pending.length} permohonan`) + table(pending, false) + '</div>' +
     sec('Riwayat Verifikasi', `${done.length} permohonan`) + table(done, true) + '</div>';
@@ -257,9 +293,11 @@ function tksAdminDetail(s) {
   const no = tksAdminCur, d = R.find(x => x[0] == no), T = tksX(no), V = tksAdminVerif(no);
   if (!d || !T || !isAdmin()) { tksAdminCur = null; return tksAdminList(s); }
   const ro = V.st != 'Menunggu Verifikasi' && V.st != 'Belum Diajukan', doc = T.doc, blob = doc && doc.files && doc.files[0];
-  const rows = Array.isArray(T.rows) ? T.rows : [], reason = String(V.cat || ''), select = (value, label, idx, disabled) =>
+  const rows = Array.isArray(T.rows) ? T.rows : [], select = (value, label, idx, disabled) =>
     `<select class="dsel ${value}" data-tka="${label}"${idx === '' ? '' : ` data-ti="${idx}"`}${disabled ? ' disabled' : ''}><option value="">Pilih</option><option value="ok"${value == 'ok' ? ' selected' : ''}>Sesuai</option><option value="no"${value == 'no' ? ' selected' : ''}>Tidak Sesuai</option></select>`;
-  const docHtml = `<div class="dr${doc ? ' y' : ''}"><span class="dn">1</span><div class="dm"><b>Surat Tanggung Jawab Mutlak</b><small class="mt">${doc ? `${esc(doc.name)} · ${tksSize(doc.size || 0)}` : 'Belum diunggah'}</small></div><div class="da">${blob ? '<button type="button" class="btn o sm" data-tka-pv>Lihat</button>' : ''}${doc ? select(V.doc, 'doc', '', ro) : PL('s-r', 'Belum diunggah')}</div>${V.doc == 'no' && !ro ? `<div class="dnote"><label>Keterangan penolakan <em>(wajib diisi)</em><textarea data-tka-note="doc" rows="2" placeholder="Jelaskan perbaikan dokumen yang diperlukan...">${esc(V.docNote || '')}</textarea></label></div>` : V.doc == 'no' && V.docNote ? `<div class="dnote ro"><b>Keterangan:</b> ${esc(V.docNote)}</div>` : ''}</div>`;
+  const docRowA = (n, label, dc, key, pv, val, note) => `<div class="dr${dc ? ' y' : ''}"><span class="dn">${n}</span><div class="dm"><b>${label}</b><small class="mt">${dc ? `${esc(dc.name)} · ${tksSize(dc.size || 0)}` : 'Belum diunggah'}</small></div><div class="da">${dc && dc.files && dc.files[0] ? `<button type="button" class="btn o sm" ${pv}>Lihat</button>` : ''}${dc ? select(val || '', key, '', ro) : PL('s-r', 'Belum diunggah')}</div>${val == 'no' && !ro ? `<div class="dnote"><label>Keterangan penolakan <em>(wajib diisi)</em><textarea data-tka-note="${key}" rows="2" placeholder="Jelaskan perbaikan dokumen yang diperlukan...">${esc(note || '')}</textarea></label></div>` : val == 'no' && note ? `<div class="dnote ro"><b>Keterangan:</b> ${esc(note)}</div>` : ''}</div>`;
+  const docHtml = docRowA(1, 'Surat Permohonan Penaksiran', T.surat, 'surat', 'data-tka-pvs', V.surat, V.suratNote) + docRowA(2, 'Surat Tanggung Jawab Mutlak', doc, 'doc', 'data-tka-pv', V.doc, V.docNote);
+  const dokNo = V.surat == 'no' || V.doc == 'no', dokOk = V.surat == 'ok' && V.doc == 'ok';
   /* Kondisi = FILTER tampilan (data kondisi dari Pengguna Barang tidak diubah). Kesesuaian = ISI CEPAT (menandai semua baris yang tampil). */
   const kn = v => { const t = String(v == null ? '' : v).trim(); return /rusak\s*berat|^rb$/i.test(t) ? 'Rusak Berat' : /rusak\s*sedang|^rs$/i.test(t) ? 'Rusak Sedang' : /rusak\s*ringan|^rr$/i.test(t) ? 'Rusak Ringan' : /^(baik|b)$/i.test(t) ? 'Baik' : (t || 'Tidak diketahui'); };
   const kinds = [...new Set(['Rusak Berat', 'Rusak Sedang', 'Baik', ...rows.map(r => kn(r.kondisi))])];
@@ -273,26 +311,27 @@ function tksAdminDetail(s) {
   const table = rows.length ? `<div class="qk"><div class="qg"><span>Filter kondisi barang</span><div>${qf('', 'Semua', rows.length + ' barang')}${kinds.map(k => qf(k, k, cnt(k) + ' barang')).join('')}</div></div>${ro ? '' : `<div class="qg"><span>Isi cepat kesesuaian${fk ? ' (barang yang tampil)' : ''}</span><div>${qb('ok', 'Semua Sesuai', 'Sesuai data KIB')}${qb('no', 'Semua Tidak Sesuai', 'Tidak sesuai data KIB')}</div></div>`}${fk ? '<button type="button" class="btn o sm" data-tkaf-reset>Hapus Filter</button>' : ''}</div><div class="tw"><table class="kvt"><thead><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Bahan</th><th>Tahun</th><th>Qty</th><th>Tonase</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr></thead><tbody>${filtered.length ? '' : '<tr><td colspan="11" class="mt" style="text-align:center;padding:26px">Tidak ada barang dengan kondisi ini. Klik “Semua” untuk menampilkan seluruh barang.</td></tr>'}${filtered.map(({ r, i }, k) => `<tr><td>${k + 1}</td><td class="mono">${esc(r.kib)}</td><td class="mono">${esc(r.kode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.bahan || '-')}</td><td>${esc(r.tahun)}</td><td>${esc(r.qty)} ${esc(r.sat)}</td><td>${esc(r.tonase)} ${esc(r.satt)}</td><td>${esc(r.kondisi)}</td><td>${select(V.check[i], 'row', i, ro)}</td><td>${V.check[i] == 'no' && !ro ? `<textarea data-tka-note="row" data-ti="${i}" rows="2" placeholder="Keterangan (wajib)">${esc(V.notes[i] || '')}</textarea>` : V.check[i] == 'no' ? esc(V.notes[i] || '-') : '-'}</td></tr>`).join('')}</tbody></table></div>` : EM('Belum ada barang', 'Permohonan tidak memiliki rincian barang tonase.');
   s.innerHTML = HD('Verifikasi Permohonan Penaksiran', `${esc(no)} · ${esc(d[1])}`, '<button class="btn o" data-tka-back>← Kembali</button>') +
     sec('Ringkasan Permohonan', ro ? 'Hasil verifikasi hanya dapat dilihat.' : 'Periksa dokumen dan kesesuaian data tonase.', PL(ro ? V.st == 'Disetujui' ? 's-g' : 's-r' : V.draft ? 's-b' : 's-o', ro ? V.st : V.draft ? 'Draft Verifikasi' : 'Menunggu Verifikasi')) +
-    `<dl><dt>Jenis</dt><dd>${esc(d[4])}</dd><dt>Tanggal Surat</dt><dd>${esc(d[5])}</dd><dt>Perangkat Daerah</dt><dd>${esc(d[1])}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd><dt>Status Permohonan Penaksiran</dt><dd>${PL(tksStat(no)[0], tksStat(no)[1])}</dd></dl>${ro && reason ? `<div class="al2 rjb" style="margin-top:14px"><b>Catatan Admin:</b> ${esc(reason)}</div>` : ''}</div>` +
-    sec('Verifikasi Dokumen', 'Surat Tanggung Jawab Mutlak', PL(V.doc == 'ok' ? 's-g' : V.doc == 'no' ? 's-r' : 's-n', V.doc == 'ok' ? 'Sesuai' : V.doc == 'no' ? 'Tidak Sesuai' : 'Belum diperiksa')) + `<div class="drs">${docHtml}</div></div>` +
+    `<dl><dt>Jenis</dt><dd>${esc(d[4])}</dd><dt>Tanggal Surat</dt><dd>${esc(d[5])}</dd><dt>Perangkat Daerah</dt><dd>${esc(d[1])}</dd><dt>Perihal</dt><dd>${esc(d[10])}</dd><dt>Nomor Surat Penaksiran</dt><dd>${esc(T.nomorSurat || '-')}</dd><dt>Tanggal Penaksiran</dt><dd>${esc(T.tglPenaksiran ? tksTglFmt(T.tglPenaksiran) : '-')}</dd><dt>Status Permohonan Penaksiran</dt><dd>${PL(tksStat(no)[0], tksStat(no)[1])}</dd></dl></div>` +
+    sec('Verifikasi Dokumen', 'Surat Permohonan Penaksiran dan Surat Tanggung Jawab Mutlak', PL(dokNo ? 's-r' : dokOk ? 's-g' : 's-n', dokNo ? 'Tidak Sesuai' : dokOk ? 'Sesuai' : 'Belum diperiksa')) + `<div class="drs">${docHtml}</div></div>` +
     sec('Daftar Barang / KIB yang Disurvei', 'Filter kondisi hanya mengatur tampilan. Gunakan Isi cepat untuk menandai banyak barang sekaligus, atau pilih per barang.', `<span class="stt ${rows.length && diperiksa == rows.length ? 's-g' : 's-b'}">Diperiksa ${diperiksa}/${rows.length}</span> <span class="stt s-b">${filtered.length}/${rows.length} ditampilkan</span>`) + table + '</div>' +
-    (ro ? '' : `<div class="ff"><label class="l2 full">Catatan keputusan Admin<textarea id="tka_cat" rows="3" placeholder="Alasan penolakan atau catatan untuk pemohon...">${esc(V.cat || '')}</textarea></label></div><div style="text-align:right;margin-bottom:20px;display:flex;gap:10px;justify-content:flex-end"><button class="btn o" data-tka-act="draft">Simpan Draft</button><button class="btn dng" data-tka-act="reject">Tolak</button><button class="btn" data-tka-act="approve">Setujui &amp; Lanjut ke Daftar Objek</button></div>`);
+    (ro ? '' : `<div style="text-align:right;margin-bottom:20px;display:flex;gap:10px;justify-content:flex-end"><button class="btn o" data-tka-act="draft">Simpan Draft</button><button class="btn dng" data-tka-act="reject">Tolak</button><button class="btn" data-tka-act="approve">Setujui &amp; Lanjut ke Daftar Objek</button></div>`);
   s.onchange = e => {
     const el = e.target.closest('[data-tka]');
     if (!el || ro) return;
     if (el.dataset.tka == 'doc') V.doc = el.value;
+    else if (el.dataset.tka == 'surat') V.surat = el.value;
     else if (el.dataset.tka == 'row') V.check[+el.dataset.ti] = el.value;
     Store.persist(); pgTksAdmin();
   };
   s.oninput = e => {
-    if (!ro && e.target.id == 'tka_cat') { V.cat = e.target.value; return; }
     const el = e.target.closest('[data-tka-note]');
     if (!el || ro) return;
     if (el.dataset.tkaNote == 'doc') V.docNote = el.value;
+    else if (el.dataset.tkaNote == 'surat') V.suratNote = el.value;
     else V.notes[+el.dataset.ti] = el.value;
-    V.cat = ($('#tka_cat') || {}).value || V.cat || '';
   };
   s.onclick = e => {
+    if (e.target.closest('[data-tka-pvs]')) return tksPreview(no, 'surat');
     const b = e.target.closest('[data-tka-pv]');
     if (b) return tksPreview(no);
     if (e.target.closest('[data-tka-back]')) { tksAdminCur = null; return pgTksAdmin(); }
@@ -313,7 +352,6 @@ function tksAdminDetail(s) {
     const action = e.target.closest('[data-tka-act]');
     if (!action || ro) return;
     if (!can('verifikasi')) return deny();
-    V.cat = ($('#tka_cat') || {}).value.trim();
     if (action.dataset.tkaAct == 'draft') {
       V.draft = true; V.draftTs = nowStr(); Store.persist();
       toast('Draft verifikasi penaksiran disimpan. Anda dapat melanjutkannya nanti.'); tksAdminCur = null; return pgTksAdmin();
@@ -322,6 +360,8 @@ function tksAdminDetail(s) {
     const rejectedRows = rows.map((r, i) => i).filter(i => V.check[i] == 'no');
     const noRowNote = rejectedRows.find(i => !String(V.notes[i] || '').trim());
     if (action.dataset.tkaAct == 'approve') {
+      if (!T.surat) return toast('Surat Permohonan Penaksiran belum diunggah.');
+      if (V.surat != 'ok') return toast('Pilih Sesuai untuk Surat Permohonan Penaksiran sebelum menyetujui.');
       if (!doc) return toast('Surat Tanggung Jawab Mutlak belum diunggah.');
       if (V.doc != 'ok') return toast('Pilih Sesuai untuk dokumen Surat Tanggung Jawab Mutlak sebelum menyetujui.');
       if (!rows.length) return toast('Tidak ada data barang tonase untuk diverifikasi.');
@@ -330,22 +370,22 @@ function tksAdminDetail(s) {
       return cfm('Setujui permohonan penaksiran?', 'Data yang disetujui akan diteruskan ke Daftar Objek Penaksiran.', () => {
         const U = tksX(no), X = tksAdminVerif(no);
         if (!U || U.st != 'Diajukan' || X.st == 'Disetujui') return;
-        X.st = 'Disetujui'; X.draft = false; X.ts = nowStr(); X.cat = V.cat; X.obId = X.obId || Date.now();
+        X.st = 'Disetujui'; X.draft = false; X.ts = nowStr(); X.obId = X.obId || Date.now();
         hs(no, 'Permohonan penaksiran disetujui Admin, lanjut ke Daftar Objek Penaksiran', CUR.name);
         Store.persist(); toast('Permohonan disetujui dan diteruskan ke Daftar Objek Penaksiran.');
         tksAdminCur = null; show('ob');
       }, 'Setujui');
     }
     if (noRowNote != null) return toast('Isi keterangan untuk barang yang Tidak Sesuai.');
+    if (V.surat == 'no' && !String(V.suratNote || '').trim()) return toast('Isi keterangan penolakan Surat Permohonan Penaksiran.');
     if (V.doc == 'no' && !String(V.docNote || '').trim()) return toast('Isi keterangan penolakan Surat Tanggung Jawab Mutlak.');
-    if (!String(V.cat || '').trim() && V.doc != 'no' && !rejectedRows.length) return toast('Isi catatan penolakan permohonan.');
     return cfm('Tolak permohonan penaksiran?', 'Permohonan dikembalikan kepada Pengguna Barang untuk diperbaiki dan diajukan ulang.', () => {
       const U = tksX(no), X = tksAdminVerif(no);
       if (!U || U.st != 'Diajukan') return;
       X.st = 'Ditolak'; X.draft = false; X.ts = nowStr(); U.st = 'Draft'; U.saved = true;
         /* Alasan per KIB (kunci KIB ID) agar tetap tepat walau urutan/jumlah baris diubah pemohon saat memperbaiki */
         X.rjKib = {}; rows.forEach((r, i) => { if (V.check[i] != 'no') return; const a = X.rjKib[r.kib] = X.rjKib[r.kib] || [], n = String(V.notes[i] || '').trim(); if (n && !a.includes(n)) a.push(n); });
-      hs(no, 'Permohonan penaksiran ditolak Admin', (CUR.name || '') + (X.cat ? ' · ' + X.cat : ''));
+      hs(no, 'Permohonan penaksiran ditolak Admin', CUR.name || '');
       Store.persist(); toast('Permohonan ditolak dan dikembalikan untuk diperbaiki.');
       tksAdminCur = null; pgTksAdmin();
     }, 'Tolak');
@@ -363,6 +403,7 @@ document.addEventListener('click', e => {
   const d = R[+b.dataset.pnk]; if (!d || !own(d) || !psjOk(d[0])) return deny();
   show('pmp'); tksCur = d[0]; const t = tksX(d[0]); tksMode = t && t.src == 'excel' ? 'excel' : 'manual'; pgPerpen(); window.scrollTo(0, 0);
 });
+document.addEventListener('click',e=>{const b=e.target.closest('[data-kpknl]');if(b)kpknlSelect(b.dataset.kpknl)});
 
 
 /* ---------- Tahap yang sedang dijalani (ditampilkan ke Pengguna Barang) ----------
@@ -370,6 +411,7 @@ document.addEventListener('click', e => {
 function tahapNow(d) {
   if (!d) return '';
   const no = d[0], st = d[6], S = SVS[no] || {}, P = PEN[no];
+  if(kpknlRoute(no)){const x=RX[no].kpknl;return x.status=='Tersimpan'?'Penilaian KPKNL · surat tersimpan':'Penilaian KPKNL · menunggu hasil'}
   if (st == 'Menunggu Verifikasi') return 'Verifikasi dokumen oleh Admin';
   if (st == 'Dalam Proses') {
     if (S.st != 'Selesai') return S.st == 'Draft' ? 'Survei Lapangan · sedang berjalan' : 'Menunggu Survei Lapangan';

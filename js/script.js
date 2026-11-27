@@ -8,11 +8,12 @@ let pg=1,fs='',editNo=null,detCur=null;
 const vis=()=>R.filter(own),deny=()=>toast('Anda tidak memiliki hak untuk tindakan ini.');
 
 var RX={};
+function kpknlRoute(no){return !!(RX[no]&&RX[no].kpknl&&RX[no].kpknl.route=='KPKNL')}
 const hs=(no,a,n)=>{const x=RX[no]=RX[no]||{h:[]};x.h=x.h||[];x.h.push({t:new Date().toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),a:a,n:n||''})};
 
 const EDIT_OK={'Draft':1,'Ditolak':1};
 function acts(d,i){const s=d[6],ed=EDIT_OK[s],w=bolehTulis(d);
- return `<button class="ib" data-r="${i}" aria-label="Lihat detail" title="Lihat">${EY}</button>${w?`<button class="ib" aria-label="Ubah" ${ed?`data-ed="${i}" title="${s=='Ditolak'?'Perbaiki':'Edit'}"`:'disabled title="Tidak dapat diedit: permohonan sudah diajukan" style="opacity:.35;cursor:not-allowed"'}>${ED}</button>${ed?(s=='Ditolak'?`<button class="btn sm vf" data-ed="${i}">Perbaiki &amp; Ajukan Ulang</button>`:`<button class="btn sm vf" data-vf="${i}">Ajukan Verifikasi</button>`):s=='Menunggu Verifikasi'?`<button class="btn o sm vf" data-wd="${i}">Tarik Kembali</button>`:s=='Disetujui'&&psjOk(d[0])?`<button class="btn sm vf" data-pnk="${i}">Lanjut ke Penaksiran</button>`:''}`:''}<button class="ib" data-mn="${i}" aria-label="Lainnya" title="Lainnya">&#8942;</button>`}
+ return `<button class="ib" data-r="${i}" aria-label="Lihat detail" title="Lihat">${EY}</button>${w?`<button class="ib" aria-label="Ubah" ${ed?`data-ed="${i}" title="${s=='Ditolak'?'Perbaiki':'Edit'}"`:'disabled title="Tidak dapat diedit: permohonan sudah diajukan" style="opacity:.35;cursor:not-allowed"'}>${ED}</button>${ed?(s=='Ditolak'?`<button class="btn sm vf" data-ed="${i}">Perbaiki &amp; Ajukan Ulang</button>`:`<button class="btn sm vf" data-vf="${i}">Ajukan Verifikasi</button>`):s=='Menunggu Verifikasi'?`<button class="btn o sm vf" data-wd="${i}">Tarik Kembali</button>`:s=='Disetujui'&&psjOk(d[0])?(kpknlRoute(d[0])?`<span class="stt s-b">Penilaian KPKNL</span>`:`<button class="btn sm vf" data-pnk="${i}">Lanjut ke Penaksiran</button>`):''}`:''}<button class="ib" data-mn="${i}" aria-label="Lainnya" title="Lainnya">&#8942;</button>`}
 const DOCN=['Permohonan Pemindahtanganan / Izin Bongkar','Surat Kajian / BA Penelitian','Surat Perintah','Surat Pernyataan'];
 function samplePdf(judul,sub){const e=t=>String(t).replace(/[^\x20-\x7e]/g,'?').replace(/[\\()]/g,'\\$&'),
  tx=`BT /F1 20 Tf 60 760 Td (${e(judul)}) Tj 0 -28 Td /F1 12 Tf (${e(sub)})  Tj 0 -22 Td (Dokumen contoh untuk demo - bukan berkas asli.) Tj ET`,
@@ -30,7 +31,7 @@ function samplePdf(judul,sub){const e=t=>String(t).replace(/[^\x20-\x7e]/g,'?').
 function tlHtml(d){const x=RX[d[0]];if(!x||!x.h||!x.h.length)return `<ul class="tl"><li><b>Pengajuan dibuat</b><small>${d[5]} · ${d[1]}</small></li><li><b>Verifikasi dokumen</b><small>Admin</small></li><li><b>Status saat ini: ${d[6]}</b><small>Menunggu tindak lanjut</small></li></ul>`;
  return (x.cat&&d[6]=='Ditolak'?`<div class="al2" style="margin-bottom:14px"><b>Catatan Admin:</b> ${x.cat}${cnHtml(d[0])}</div>`:'')+`<ul class="tl">${x.h.map(h=>`<li><b>${h.a}</b><small>${h.t}${h.n?' · '+h.n:''}</small></li>`).join('')}<li><b>Status saat ini: ${d[6]}</b><small>${d[6]=='Menunggu Verifikasi'?'Menunggu pemeriksaan Admin':d[6]=='Draft'?'Belum diajukan, masih dapat diedit':tahapNow(d)||(d[6]=='Dalam Proses'?'Sedang dalam survei / Penelitian Tim Penghapusan':'Selesai')}</small></li></ul>`}
 function fl(){cc();const q=$('#q2').value.toLowerCase(),r=R.map((d,i)=>[d,i]).filter(([d])=>own(d)&&(!fs||d[6]==fs)&&d.join(' ').toLowerCase().includes(q)),n=Math.max(1,Math.ceil(r.length/4));pg=Math.min(pg,n);
- $('#t2').innerHTML=r.slice((pg-1)*4,pg*4).map(([d,i],k)=>`<tr><td>${(pg-1)*4+k+1}</td><td class="mono">${d[0]}</td><td>${d[5]}</td><td>${d[1]}</td><td>${d[11]}</td><td>${d[12]}</td><td>${stp(d)}</td><td class="ac">${acts(d,i)}</td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--mt);padding:34px">Tidak ada permohonan yang cocok.</td></tr>';
+ $('#t2').innerHTML=r.slice((pg-1)*4,pg*4).map(([d,i],k)=>`<tr><td>${(pg-1)*4+k+1}</td><td class="mono">${d[0]}</td><td>${d[5]}</td><td>${d[1]}</td><td>${d[11]}</td><td>${d[12]}</td><td>${stp(d)}</td><td>${durCell(d[0],'overall')}</td><td class="ac">${acts(d,i)}</td></tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--mt);padding:34px">Tidak ada permohonan yang cocok.</td></tr>';
  $('#cnt').textContent=`Menampilkan ${r.length?(pg-1)*4+1:0}-${Math.min(pg*4,r.length)} dari ${r.length} data`;
  $('#pgn').innerHTML=`<button data-g="${Math.max(1,pg-1)}">&lsaquo;</button>`+Array.from({length:n},(_,k)=>`<button data-g="${k+1}" class="${k+1==pg?'on':''}">${k+1}</button>`).join('')+`<button data-g="${Math.min(n,pg+1)}">&rsaquo;</button>`}
 $('#q2').addEventListener('input',()=>{pg=1;fl()});
@@ -42,13 +43,15 @@ const isMob=()=>matchMedia('(max-width:860px)').matches,closeNav=()=>{document.b
 $('#mn').onclick=()=>{if(isMob()){const o=document.body.classList.toggle('mo');$('#mn').setAttribute('aria-expanded',o)}else document.body.classList.toggle('sbc')};
 $('#sov').onclick=closeNav;$('#sbx').onclick=closeNav;$$('#side nav .nav').filter(b=>!b.dataset.menuToggle).forEach(b=>b.addEventListener('click',closeNav));
 document.addEventListener('keydown',e=>{if(e.key=='Escape')closeNav()});matchMedia('(max-width:860px)').addEventListener('change',closeNav);
-const K=[['KIB-A-001','1.3.01','Kendaraan Dinas',2018,'Rusak Berat',1,'Unit'],['KIB-B-025','1.3.02','Mesin / Peralatan',2019,'Rusak Berat',2,'Unit'],['KIB-C-117','1.3.03','Peralatan Kantor',2017,'Rusak Sedang',5,'Satuan'],['KIB-C-204','1.3.04','Material Bongkaran',2016,'Rusak Berat',10,'Batang'],['KIB-C-009','1.3.05','Gedung Gudang Peralatan',1998,'Rusak Berat',1,'Unit']];
+const K=[['KIB-C-001','1.3.01','Gedung dan Bangunan',2018,'Rusak Berat',1,'Unit'],['KIB-B-025','1.3.02','Mesin / Peralatan',2019,'Rusak Berat',2,'Unit'],['KIB-C-117','1.3.03','Peralatan Kantor',2017,'Rusak Sedang',5,'Satuan'],['KIB-C-204','1.3.04','Material Bongkaran',2016,'Rusak Berat',10,'Batang'],['KIB-G-009','1.3.05','Aset Lain-Lain',2020,'Rusak Berat',1,'Unit']];
 const permKib=no=>{const a=((RX[no]||{}).f||{}).kib;return Array.isArray(a)?a.map(Number).filter(i=>Number.isInteger(i)&&K[i]).map(i=>K[i]):[]};
 const svResultFor=(o,item,index,rows)=>{const a=o&&Array.isArray(o.it)?o.it:[],keyed=a.find(x=>x&&x.kib===item[0]);if(keyed)return keyed;if(a.some(x=>x&&x.kib))return{};return rows.length===3&&rows.every((x,i)=>x===K[i])?a[index]||{}:{}};
 $('#fpd').innerHTML=NM.map(x=>`<option>${x}</option>`).join('');
 $('#kt').innerHTML=K.map((k,i)=>`<tr><td><input type="checkbox" class="kb" data-k="${i}" aria-label="Pilih ${k[2]}"></td><td class="mono">${k[0]}</td><td class="mono">${k[1]}</td><td>${k[2]}</td><td>${k[3]}</td><td>${k[4]}</td><td class="mono">${k[5]}</td><td>${k[6]}</td></tr>`).join('');
 function cc(){$$('.cs>div').forEach(c=>{const g=c.dataset.f;c.querySelector('b').textContent=g?vis().filter(d=>d[6]==g).length:vis().length});$$('.tot').forEach(x=>x.textContent=vis().length)}
 let tt;function toast(m,jenis){const t=$('#tst');if(t.parentNode!==document.body)document.body.appendChild(t);t.textContent=m;t.className='toast on'+(jenis?' '+jenis:'');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),Math.max(3000,m.length*60))}
+const jenisPermohonan=()=>($('input[name=jn]:checked')||{}).value||'Izin Bongkar';
+function syncPerihal(){const e=$('#fp2');if(e)e.value=jenisPermohonan()}
 function sum(){const idn=!!($('#fn').value.trim()&&$('#fp2').value.trim()&&$('#fd').value),kc=$$('.kb:checked').length;genRow(!!($('#fn').value.trim()&&$('#fd').value&&$('#fpd').value));const dc=$$('.upl.y').length;
  $('#dct').textContent=dc+'/4 Lengkap';$('#kct').textContent=kc+' barang dipilih';$('#sdt').textContent=`Dokumen persyaratan (${dc}/4)`;$('#skt').textContent=`Barang KIB (${kc} dipilih)`;
  [['#si',idn],['#sd',dc==4],['#sk2',kc>0]].forEach(([e,v])=>$(e).classList.toggle('y',v));
@@ -62,12 +65,12 @@ $$('.upl input[type=file]').forEach(inp=>inp.onchange=()=>{const f=inp.files[0],
  if(!f){u._file=null;u.classList.remove('y');sm.textContent='PDF, maksimal 5 MB';bt.firstChild.textContent='Pilih File';sum();return}
  if(f.size>5*1048576){inp.value='';u._file=null;u.classList.remove('y');sm.textContent='Ukuran file melebihi 5 MB.';sm.style.color='#c23a32';bt.firstChild.textContent='Pilih File';sum();return}
  u._file=f;sm.style.color='';sm.textContent=f.name+' · '+Math.max(1,Math.round(f.size/1024))+' KB';u.classList.add('y');bt.firstChild.textContent='Ganti';sum()});
-$('#ka').onchange=e=>{$$('.kb').forEach(x=>x.checked=e.target.checked);sum()};
+$('#ka').onchange=e=>{$$('.kb:not(:disabled)').forEach(x=>x.checked=e.target.checked);sum()};
 $$('.kb').forEach(x=>x.onchange=()=>{$('#ka').checked=$$('.kb').every(y=>y.checked);sum()});
 ['#fn','#fp2','#fd'].forEach(x=>$(x).addEventListener('input',sum));sum();
 
 function show(v,btn){$$('.vw').forEach(e=>e.classList.toggle('on',e.id==v));const b=btn||$$('.nav').find(n=>n.dataset.v==(v=='det'||v=='form'?(canView('list')?'list':'dash'):v));$$('.nav').forEach(n=>n.classList.toggle('on',n==b));
- const t=b?b.textContent.replace(/\d+$/,'').trim():'';$('#bc').textContent=v=='dash'?'Dashboard':v=='det'?(canView('list')?'Modul 1 › Permohonan › Detail':'Dashboard › Detail Permohonan'):v=='form'?(canView('list')?'Modul 1 › Permohonan › Buat Permohonan':'Dashboard › Buat Permohonan'):(b.dataset.g||'Modul 1')+' › '+(b.classList.contains('subnav')?'Permohonan Penjualan › ':'')+t;if(v=='soon')$('#sn').textContent=t;scrollTo({top:0})}
+ const t=b?b.textContent.replace(/\d+$/,'').trim():'';$('#bc').textContent=v=='dash'?'Dashboard':v=='det'?(canView('list')?'Modul 1 › Permohonan › Detail':'Dashboard › Detail Permohonan'):v=='form'?(canView('list')?'Modul 1 › Permohonan › Buat Permohonan':'Dashboard › Buat Permohonan'):(b.dataset.g||'Modul 1')+' › '+(b.dataset.bc||((b.classList.contains('subnav')?'Permohonan Penjualan › ':'')+t));if(v=='soon')$('#sn').textContent=t;scrollTo({top:0})}
 function navClick(n){if(n.dataset.menuToggle){const sub=$('#'+n.dataset.menuToggle),open=n.getAttribute('aria-expanded')!='true';n.setAttribute('aria-expanded',String(open));if(sub)sub.hidden=!open;return}show(n.dataset.v,n)}
 $$('.nav').forEach(n=>n.onclick=()=>navClick(n));
 const bell=$('#bellBtn');
@@ -85,7 +88,7 @@ function detail(i,src,tab){tab=tab||0;const d=(src||R)[i];if(!own(d))return deny
  <div class="opts"><label class="opt det-type"><input type="radio" ${f.jn=='Izin Bongkar'?'checked':''} disabled><span><b>Izin Bongkar</b><small class="mt">Permohonan Izin Bongkar</small></span></label><label class="opt det-type"><input type="radio" ${f.jn=='Pemindahtanganan'?'checked':''} disabled><span><b>Pemindahtanganan</b><small class="mt">Permohonan Pemindahtanganan</small></span></label></div>
  <div class="ff">${roField('Nomor Permohonan',f.no)}${roField('Tanggal Surat',f.tgl?new Date(f.tgl+'T00:00:00').toLocaleDateString('id-ID'):'')}
  ${roField('Perangkat Daerah / Pemohon',f.pd,true)}${roField('Nama Kepala OPD',f.kepala)}${roField('NIP Kepala OPD',f.nip)}
- ${roArea('Alamat Perangkat Daerah',f.alamat)}${roArea('Perihal / Maksud',f.pf)}</div></div>
+ ${roArea('Alamat Perangkat Daerah',f.alamat)}${roArea('Perihal / Maksud',f.jn)}</div></div>
  <div class="cd"><div class="ch"><div><h2>3. Daftar Barang (KIB)</h2><small class="mt">${pickedKib.length} barang dipilih</small></div></div>
  <div class="tw det-kib"><table style="min-width:640px"><thead><tr><th>No</th><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th></tr></thead><tbody>${kibRows||'<tr><td colspan="8" style="text-align:center;color:var(--mt)">Belum ada barang KIB yang dipilih.</td></tr>'}</tbody></table></div></div>`;
  const P=[info,
@@ -110,10 +113,15 @@ $('#lf').addEventListener('submit',e=>{e.preventDefault();const u=$('#lu').value
 $('#lu').addEventListener('input',()=>$('#le').textContent='');
 if(TAMPIL_AKUN_DEMO){$('#demo div').innerHTML=ACCOUNTS.map(a=>`<button data-demo="${a.email}" type="button">${a.tag}</button>`).join('');$('#demo').hidden=false;$('#demo').addEventListener('click',e=>{const b=e.target.closest('[data-demo]');if(b){$('#lu').value=b.dataset.demo;$('#le').textContent='';$('#lp').focus()}})}
 function terapkanMenu(){let g=null,n=0;
+ /* atur tampil/sembunyi satu tombol menu (termasuk submenu bertingkat); kembalikan true bila tampil */
+ const atur=el=>{
+  if(el.dataset.menuToggle){const sub=$('#'+el.dataset.menuToggle);let ada=false;
+   if(sub)[...sub.children].forEach(k=>{if(k.classList.contains('nav')&&atur(k))ada=true});
+   if(sub)sub.hidden=!ada;el.hidden=!ada;return ada}
+  const ok=canView(el.dataset.v);el.hidden=!ok;return ok};
  [...$('#side nav').children].forEach(el=>{
   if(el.classList.contains('grp')){if(g)g.hidden=!n;g=el;n=0}
-  else if(el.classList.contains('nav')&&el.dataset.menuToggle){const sub=$('#'+el.dataset.menuToggle),items=sub?$$('#'+el.dataset.menuToggle+' .nav'):[];items.forEach(item=>item.hidden=!canView(item.dataset.v));if(sub)sub.hidden=!items.some(item=>!item.hidden);el.hidden=!sub||sub.hidden;if(!el.hidden&&g)n++}
-  else if(el.classList.contains('nav')){const ok=canView(el.dataset.v);el.hidden=!ok;if(ok&&g)n++}});
+  else if(el.classList.contains('nav')){if(atur(el)&&g)n++}});
  if(g)g.hidden=!n}
 function tataDaftar(){const pb=!canView('list'),kartu=$('#q2').closest('.cd'),kosong=$('#em'),tujuan=pb?$('#dashList'):$('#list');
  if(kartu.parentNode!==tujuan){tujuan.appendChild(kartu);tujuan.appendChild(kosong)}
@@ -153,7 +161,67 @@ $('#mk').onclick=()=>{menu(false);toast('Ganti kata sandi belum tersedia.')};
 $('#lo').onclick=()=>{menu(false);keluar()};
 if(TAMPIL_AKUN_DEMO)$('#mrs').hidden=false;
 $('#mrs').onclick=()=>{menu(false);cfm('Reset data?','Semua permohonan, riwayat, dan berkas kembali ke data awal di semua tab yang terbuka. Anda tetap login.',()=>Store.clear().then(()=>location.reload()),'Reset')};
-const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),RP=n=>'Rp '+Math.round(n).toLocaleString('id-ID'),fd=s=>s?new Date(s).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):'-',today=()=>new Date().toISOString().slice(0,10);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),RP=n=>'Rp '+Math.round(n).toLocaleString('id-ID'),fd=s=>s?new Date(s).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):'-',
+today=()=>new Date().toISOString().slice(0,10);
+/* Indikator durasi proses: hari kerja Senin-Jumat; hari mulai tidak dihitung. */
+const DUR_MONTHS={jan:0,januari:0,feb:1,februari:1,mar:2,maret:2,apr:3,april:3,mei:4,may:4,jun:5,juni:5,jul:6,juli:6,agu:7,ags:7,agustus:7,sep:8,september:8,okt:9,oktober:9,nov:10,november:10,des:11,desember:11};
+function durDate(v){
+ if(!v)return null;
+ if(v instanceof Date&&!isNaN(v))return new Date(v.getFullYear(),v.getMonth(),v.getDate());
+ const s=String(v).trim(),iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+ if(iso)return new Date(+iso[1],+iso[2]-1,+iso[3]);
+ const m=s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+ if(m&&DUR_MONTHS[m[2].toLowerCase()]!=null)return new Date(+m[3],DUR_MONTHS[m[2].toLowerCase()],+m[1]);
+ const d=new Date(s);return isNaN(d)?null:new Date(d.getFullYear(),d.getMonth(),d.getDate());
+}
+function durHistoryDate(no,pattern){
+ const h=(RX[no]&&RX[no].h)||[];
+ for(let i=h.length-1;i>=0;i--)if(pattern.test(String(h[i].a||''))){const d=durDate(h[i].t);if(d)return d}
+ return null;
+}
+function durWorkdays(start,end=new Date()){
+ const a=durDate(start),b=durDate(end);if(!a||!b||b<a)return 0;
+ let n=0,d=new Date(a);d.setDate(d.getDate()+1);
+ while(d<=b){const w=d.getDay();if(w!==0&&w!==6)n++;d.setDate(d.getDate()+1)}
+ return n;
+}
+function durCell(no,stage){
+ const d=R.find(x=>x[0]==no),x=RX[no]||{},S=SVS[no]||{},P=PEN[no]||{};
+ if(!d)return '<span class="mt">-</span>';
+ let start=null,done=false;const f=x.f||{};
+ if(stage==='overall'){
+   start=durHistoryDate(no,/Diajukan untuk verifikasi Admin|Diajukan ulang setelah revisi/)||durDate(f.tgl)||durDate(d[5]);
+   if(d[6]==='Draft'||d[6]==='Ditolak')return '<span class="mt">-</span>';
+   const V=typeof tksAdminVerif==='function'?tksAdminVerif(no):null;
+   done=!!(kpknlRoute(no)?(x.kpknl&&x.kpknl.status==='Tersimpan'):V&&['Disetujui','Ditolak'].includes(V.st));
+ }else if(stage==='admin'){
+   start=durHistoryDate(no,/Diajukan untuk verifikasi Admin|Diajukan ulang setelah revisi/);
+   if(!start)start=durDate(f.tgl)||durDate(d[5]);
+   done=d[6]!=='Menunggu Verifikasi'&&d[6]!=='Draft';
+ }else if(stage==='survey'){
+   start=durHistoryDate(no,/Diterima Admin, lanjut ke Survei Lapangan/);
+   if(!start)start=durDate(f.tgl)||durDate(d[5]);
+   done=S.st==='Selesai';
+ }else if(stage==='research'){
+   start=durDate(S.tgl);done=P.st==='Final';
+ }else if(stage==='approval'){
+   start=P.st==='Final'?(durDate(P.tgl)||durDate(S.tgl)):null;
+   done=!!(S.psj&&S.psj.st==='Tersimpan');
+ }else if(stage==='tks'){
+   const T=typeof tksX==='function'?tksX(no):null,V=typeof tksAdminVerif==='function'?tksAdminVerif(no):null;
+   if(!T||T.st!=='Diajukan')return '<span class="mt">-</span>';
+   start=durHistoryDate(no,/Permohonan Penaksiran diajukan pengguna barang/);
+   if(!start&&T&&T.ts)start=durDate(T.ts);
+   done=!!(V&&['Disetujui','Ditolak'].includes(V.st));
+ }else return '<span class="mt">-</span>';
+ if(done)return '<span class="stt s-g">Selesai</span>';
+ if(!start)return '<span class="mt">-</span>';
+ const days=durWorkdays(start);
+ if(days>3)return '<span class="stt s-r">Melewati batas waktu!</span>';
+ const day=Math.max(1,days),cls=day===1?'s-g':day===2?'s-o':'s-r';
+ return `<span class="stt ${cls}">Hari ke-${day} / 3</span>`;
+}
+
 const HD=(t,s,b)=>`<div class="bn"><div class="bi"><svg class="i"><use href="#f"/></svg></div><div><h1>${t}</h1><p>${s}</p></div>${b?`<div style="margin-left:auto;display:flex;gap:8px">${b}</div>`:''}</div>`;
 const ALR=(h,t)=>`<div class="al2"><b>${h}</b> ${t}</div>`;
 const AL_SV=ALR('Alur:','Permohonan diterima Admin &rarr; Survei Lapangan &rarr; lengkapi BASL &amp; hasil survei &rarr; simpan hasil survei.'),AL_PT=ALR('Alur:','Survei Lapangan selesai &rarr; masuk Penelitian Tim Penghapusan &rarr; hasil survei dapat dilihat sebagai arsip tindak lanjut.'),AL_OB=ALR('Alur Modul 2:','Tambah Permohonan &rarr; Input Objek &rarr; Simpan &rarr; Posting &rarr; Kertas Kerja Penaksiran &rarr; Unposting bila perlu koreksi. <span class="mt">&nbsp; Permohonan Penaksiran berasal dari Modul 1.</span>');
@@ -166,11 +234,12 @@ const stSv={'Belum Survei':'s-n',Draft:'s-o',Selesai:'s-g'};
 function svRows(){return R.filter(d=>d[6]=='Dalam Proses'||(d[6]=='Disetujui'&&SVS[d[0]]&&SVS[d[0]].psj)).map(d=>(SVS[d[0]]=SVS[d[0]]||{st:'Belum Survei',d:null,tgl:''},d))}
 function pgSv(){const s=$('#sv');if(svCur)return svForm(s);const r=svRows();
  s.innerHTML=HD('Survei Lapangan','')+AL_SV
- +sec('Permohonan Siap Survei','Permohonan dalam status berproses',`<span class="stt s-b">${r.length} Permohonan</span>`)+(r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Jenis Permohonan</th><th>KIB</th><th>Status Survei</th><th>Aksi</th></tr></thead><tbody>${r.map((d,i)=>`<tr><td>${i+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${d[12]}</td><td>${PL(stSv[SVS[d[0]].st],SVS[d[0]].st)}</td><td><button class="btn sm" data-sv="${d[0]}">${SVS[d[0]].st=='Selesai'?'Lihat':SVS[d[0]].st=='Draft'?'Lanjutkan':'Survei'}</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada permohonan siap survei','Permohonan muncul setelah berstatus Dalam Proses.'))+'</div>';
+ +sec('Permohonan Siap Survei','Permohonan dalam status berproses',`<span class="stt s-b">${r.length} Permohonan</span>`)+(r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Jenis Permohonan</th><th>KIB</th><th>Status Survei</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody>${r.map((d,i)=>`<tr><td>${i+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${permKib(d[0]).length}</td><td>${PL(stSv[SVS[d[0]].st],SVS[d[0]].st)}</td><td>${durCell(d[0],'survey')}</td><td><button class="btn sm" data-sv="${d[0]}">${SVS[d[0]].st=='Selesai'?'Lihat':SVS[d[0]].st=='Draft'?'Lanjutkan':'Survei'}</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada permohonan siap survei','Permohonan muncul setelah berstatus Dalam Proses.'))+'</div>';
  s.onclick=e=>{const b=e.target.closest('[data-sv]');if(b){svCur=b.dataset.sv;pgSv()}}}
 const QC=(k,v,t,sub)=>`<button type="button" class="qc" data-q="${k}:${v}" aria-pressed="false"><b>${t}</b><small>${sub}</small></button>`,
  QK=`<div class="qk"><div class="qg"><span>Kondisi barang</span><div>${QC('c','RB','Semua RB','Rusak Berat')}${QC('c','B','Semua B','Baik')}</div></div><div class="qg"><span>Kesesuaian</span><div>${QC('m','Sesuai','Semua Sesuai','Sesuai data KIB')}${QC('m','Tidak Sesuai','Semua Tidak Sesuai','Tidak sesuai data KIB')}</div></div></div>`;
 function syncQ(){$$('#sv .qc').forEach(c=>{const [f,v]=c.dataset.q.split(':'),sel=$$(`#sv .sit[data-f=${f}]`),on=sel.length>0&&sel.every(x=>x.value==v);c.classList.toggle('on',on);c.setAttribute('aria-pressed',on)})}
+function svKibSearch(s){const q=($('#sv_kib_q')||{}).value.trim().toLocaleLowerCase('id'),rows=$$('#sv [data-sv-kib-row]'),shown=rows.filter(r=>!q||r.textContent.toLocaleLowerCase('id').includes(q));rows.forEach(r=>r.hidden=!shown.includes(r));const count=$('#sv_kib_count'),empty=$('#sv_kib_empty');if(count)count.textContent=shown.length+' dari '+rows.length+' barang';if(empty)empty.hidden=shown.length>0}
 const SGN=[['tim','Tim Survei 1'],['p1','Tim Survei 2'],['p2','Tim Survei 3'],['p3','Tim Survei 4']],NMF=['tim','p1','p2','p3','jb'];
 let svN=-1;
 const nowStr=()=>new Date().toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
@@ -265,7 +334,7 @@ function ttdPage(t){document.body.classList.add('tpm');{const ts=$('#tst');if(ts
 
 async function suratSimpan(no){const x=RX[no],f=x&&x.f;if(!f||f.ttd||!suratSiap(f))return;f.files=f.files||[];f.files[0]=await suratPermohonanDocx(f);Store.persist()}
 ['#fkp','#fnip','#fpd','#fd','#fn'].forEach(q=>{const el=$(q);if(el){el.addEventListener('input',()=>{try{sum()}catch(er){}});el.addEventListener('change',()=>{try{sum()}catch(er){}})}});
-$$('input[name=jn]').forEach(r=>r.addEventListener('change',()=>{try{sum()}catch(er){}}));
+syncPerihal();$$('input[name=jn]').forEach(r=>r.addEventListener('change',()=>{syncPerihal();try{sum()}catch(er){}}));
 
 let svFt=[];const SV_FMAX=12;
 function svFtRender(ro){const g=$('#s_fp'),c=$('#s_fc');if(!g)return;
@@ -278,18 +347,17 @@ async function svFtAdd(inp,ro){if(ro)return;const fs=[...inp.files].filter(f=>/^
  list.filter(Boolean).forEach(x=>svFt.push(x));svFtRender(ro);
  if(fs.length>room)toast('Hanya '+room+' foto ditambahkan (maksimal '+SV_FMAX+').')}
 function svCollect(S,k){const o={};'basl tb st ts pl tk ob lk tim p1 p2 p3 jb cat'.split(' ').forEach(f=>o[f]=val('s_'+f));o.it=k.map((x,i)=>({kib:x[0],c:$(`.sit[data-i="${i}"][data-f=c]`).value,m:$(`.sit[data-i="${i}"][data-f=m]`).value,k:$(`.sit[data-i="${i}"][data-f=k]`).value}));o.ft=svFt.slice();o.tm={...(S.tm||{})};NMF.forEach(f=>{const x=val('s_'+f);if(x)o.tm[f]=x});return o}
-function svForm(s){const d=R.find(x=>x[0]==svCur),S=SVS[svCur],v=S.d||{basl:'BASL-'+String(R.indexOf(d)+1).padStart(3,'0')+'/2026',tb:today(),st:'',ts:today(),pl:today(),tk:'Survei langsung',ob:d[2],lk:'',tim:'',p1:'',p2:'',cat:'',it:[],ft:[]},k=permKib(svCur),ro=S.st=='Selesai',nvv=f=>((S.d&&S.d[f]!=null)?S.d[f]:(S.tm&&S.tm[f]))||'';
- svFt=Array.isArray(v.ft)?v.ft.slice():[];
+function svForm(s){const d=R.find(x=>x[0]==svCur),S=SVS[svCur],v=S.d||{basl:'BASL-'+String(R.indexOf(d)+1).padStart(3,'0')+'/2026',tb:today(),st:'',ts:today(),pl:today(),tk:'Survei langsung',ob:d[2],lk:alamatPermohonan(d[0])||alamatOpdTerakhir(d[1])||'',tim:'',p1:'',p2:'',cat:'',it:[],ft:[]},k=permKib(svCur),ro=S.st=='Selesai',nvv=f=>((S.d&&S.d[f]!=null)?S.d[f]:(S.tm&&S.tm[f]))||''; svFt=Array.isArray(v.ft)?v.ft.slice():[];
  s.innerHTML=HD('Berita Acara Survei Lapangan',d[0]+' · '+d[1],`<button class="btn o" data-a="bk">← Kembali</button>`)+
- sec('1. Identitas Berita Acara Survei Lapangan','',PL(stSv[S.st],S.st))+`<div class="ff">${FL('s_basl','Nomor BASL',v.basl)}${FL('s_tb','Tanggal BASL',v.tb,'date')}${FL('s_st','Nomor Surat Permohonan',d[0])}${FL('s_ts','Tanggal Surat Tugas',v.ts,'date')}${FL('s_pl','Pelaksanaan Survei',v.pl,'date')}${FL('s_tk','Teknik Survei',v.tk,'text',0,['Survei langsung','Lainnya'])}${FL('s_ob','Nama / Deskripsi Objek',v.ob)}${FL('s_lk','Lokasi',v.lk)}</div></div>`+
- sec('2. Daftar Barang / KIB yang Disurvei','')+(ro?'':QK)+`<div class="tw"><table><thead><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Tahun</th><th>Qty</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr></thead><tbody>${k.map((x,i)=>{const t=svResultFor(v,x,i,k)||{};return`<tr><td>${i+1}</td><td>${x[0]}</td><td>${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td><td>${x[5]} ${x[6]}</td><td><select class="sit" data-i="${i}" data-f="c"><option value="">Pilih</option>${['RB','B'].map(o=>`<option${t.c==o?' selected':''}>${o}</option>`).join('')}</select></td><td><select class="sit" data-i="${i}" data-f="m"><option value="">Pilih</option>${['Sesuai','Tidak Sesuai'].map(o=>`<option${t.m==o?' selected':''}>${o}</option>`).join('')}</select></td><td><input class="sit" data-i="${i}" data-f="k" value="${esc(t.k)}" style="width:150px;border:1px solid var(--ln);border-radius:8px;padding:6px 8px"></td></tr>`}).join('')}</tbody></table></div></div>`+
+ sec('1. Identitas Berita Acara Survei Lapangan','',PL(stSv[S.st],S.st))+`<div class="ff">${FL('s_basl','Nomor BASL',v.basl)}${FL('s_tb','Tanggal BASL',v.tb,'date')}${FL('s_st','Nomor Surat Permohonan',d[0])}${FL('s_ts','Tanggal Surat Tugas',v.ts,'date')}${FL('s_pl','Pelaksanaan Survei',v.pl,'date')}${FL('s_tk','Teknik Survei',v.tk,'text',0,['Survei langsung','Lainnya'])}${FL('s_ob','Nama / Deskripsi Objek',v.ob)}${FL('s_lk','Lokasi',v.lk||alamatPermohonan(d[0])||alamatOpdTerakhir(d[1])||'')}</div></div>`+
+ sec('2. Daftar Barang / KIB yang Disurvei','')+(ro?'':QK)+`<div class="sv-kib-toolbar"><label class="sr2"><svg class="i"><use href="#sq"></use></svg><input id="sv_kib_q" type="search" placeholder="Cari KIB ID, kode, atau nama barang..." aria-label="Cari barang KIB yang disurvei"></label><small class="mt" id="sv_kib_count"></small></div><div class="tw"><table><thead><tr><th>No</th><th>KIB ID</th><th>Kode</th><th>Nama Barang</th><th>Tahun</th><th>Qty</th><th>RB / B</th><th>Kesesuaian</th><th>Keterangan</th></tr></thead><tbody>${k.map((x,i)=>{const t=svResultFor(v,x,i,k)||{};return`<tr data-sv-kib-row><td>${i+1}</td><td>${x[0]}</td><td>${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td><td>${x[5]} ${x[6]}</td><td><select class="sit" data-i="${i}" data-f="c"><option value="">Pilih</option>${['RB','B'].map(o=>`<option${t.c==o?' selected':''}>${o}</option>`).join('')}</select></td><td><select class="sit" data-i="${i}" data-f="m"><option value="">Pilih</option>${['Sesuai','Tidak Sesuai'].map(o=>`<option${t.m==o?' selected':''}>${o}</option>`).join('')}</select></td><td><input class="sit" data-i="${i}" data-f="k" value="${esc(t.k)}" style="width:150px;border:1px solid var(--ln);border-radius:8px;padding:6px 8px"></td></tr>`}).join('')}<tr id="sv_kib_empty" hidden><td colspan="9" class="mt" style="text-align:center;padding:20px">Barang KIB tidak ditemukan.</td></tr></tbody></table></div></div>`+
  sec('3. Dokumentasi Lapangan','Bisa lebih dari satu foto')+`${ro?'':'<label class="btn o sm" style="cursor:pointer">Tambah Foto<input type="file" id="s_ft" accept="image/*" multiple hidden></label> '}<span class="mt" id="s_fc"></span><div class="fpv" id="s_fp"></div></div>`+
  sec('4. Tim Penilai / Pemohon Pendamping','Isi Nama, lalu lanjut ke TTD ')+`<div class="ff">${FL('s_tim','Tim Penilai 1',nvv('tim'))}${FL('s_p1','Tim Penilai 2',nvv('p1'))}${FL('s_p2','Tim Penilai 3',nvv('p2'))}${FL('s_jb','Jabatan Pendamping',nvv('jb'))}${FL('s_p3','Tim Penilai 4',nvv('p3'))}<label class="l2 rs2">Catatan Tim<textarea id="s_cat" placeholder="Catatan tambahan tim">${esc(nvv('cat'))}</textarea></label><div class="nmx"><button type="button" class="btn o sm" data-a="nm"${ro?' disabled':''}>Simpan Nama &amp; Lanjut TTD</button><small class="mt" id="nm_note"></small></div></div></div>`+
  sgBox(S,sgDiff(S,nvv),ro)+
  `<div class="sg-bar"><span id="sv_ft"></span><div>${ro?'':'<button type="button" class="btn o" data-a="dr">Simpan Draft Survei</button>'}<button type="button" class="btn o" data-a="gen" id="sv_gen">Generate &amp; Cetak / Simpan PDF</button>${ro?'':'<button type="button" class="btn" data-a="fin" id="sv_fin">Selesaikan Survei</button>'}</div></div>`;
- if(ro)$$('#sv input,#sv select,#sv textarea').forEach(x=>x.disabled=true);
- $('#s_st').readOnly=true;svFtRender(ro);syncQ();svSync();
- s.onchange=s.oninput=e=>{const t=e.target;if(t.id=='s_ft'){svFtAdd(t,ro);return}if(t.classList.contains('sit')){syncQ();svFoot()}else if(/^s_(tim|p1|p2|p3|jb|basl)$/.test(t.id||''))svSync()};
+ if(ro)$$('#sv input:not(#sv_kib_q),#sv select,#sv textarea').forEach(x=>x.disabled=true);
+ $('#s_st').readOnly=true;svFtRender(ro);syncQ();svKibSearch(s);svSync();
+ s.onchange=s.oninput=e=>{const t=e.target;if(t.id=='sv_kib_q'){svKibSearch(s);return}if(t.id=='s_ft'){svFtAdd(t,ro);return}if(t.classList.contains('sit')){syncQ();svFoot()}else if(/^s_(tim|p1|p2|p3|jb|basl)$/.test(t.id||''))svSync()};
  s.onclick=e=>{const fx=e.target.closest('[data-fx]');if(fx){if(!ro){svFt.splice(+fx.dataset.fx,1);svFtRender(ro)}return}
   const q=e.target.closest('[data-q]');if(q){if(ro)return;const [f,v]=q.dataset.q.split(':'),sel=$$(`#sv .sit[data-f=${f}]`),sama=sel.every(x=>x.value==v);sel.forEach(x=>x.value=sama?'':v);syncQ();svFoot();return}
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,S=SVS[svCur];if(!S)return;
@@ -368,8 +436,9 @@ function kkHitung(d,jl){const pb=((d&&d.pb)||[]).slice(0,3).map((x,i)=>{if(!x||!
  const wman=!!(d&&Array.isArray(d.wm)&&d.wm.length==3&&d.wm.every(x=>x!==''&&x!=null&&isFinite(+x)));if(wman)w=d.wm.map(x=>(+x)/100);
  const wp=w.map(x=>Math.round(x*1e6)/1e4),wsum=Math.round(wp.reduce((q,x)=>q+x,0)*1e4)/1e4,br=jl=='Langsung'?0:KK_BEA;
  const wok=Math.abs(wsum-100)<0.00005,nil=pb.map((x,i)=>ok&&wok?w[i]*x.i2:0),perkg=nil.reduce((q,x)=>q+x,0),bea=perkg*br,taks=perkg-bea;
- return{pb,ok,w,wp,wsum,wok,wman,br,nil,perkg,bea,taks,bulat:ok&&wok?Math.round(taks/KK_BULAT)*KK_BULAT:0}}
-function kkNilai(p,k){const o=p.o[k];if(isPas(o)){const mat=o.mp||'Lainnya',d=kkMatData(p,mat,false),h=d?kkHitung(d,kkJl(p,mat,d)):null;return{m:mat,n:h?h.pb.filter(x=>x.ok).length:0,v:h?h.bulat:0,nl:h?kkQkg(o)*h.bulat:0}}const r=KK[kkKey(p,'biaya')]||{};return{m:o.mp,n:0,v:0,nl:(+(r.b&&r.b[k])||0)}}
+ return{pb,ok,w,wp,wsum,wok,wman,br,nil,perkg,bea,taks,bulat:ok&&wok?Math.ceil(taks/KK_BULAT)*KK_BULAT:0}}
+function kkJlBiaya(o,r,k){return(r&&r.jl&&r.jl[k])||o.jl||'Lelang'}
+function kkNilai(p,k){const o=p.o[k];if(isPas(o)){const mat=o.mp||'Lainnya',d=kkMatData(p,mat,false),h=d?kkHitung(d,kkJl(p,mat,d)):null;return{m:mat,n:h?h.pb.filter(x=>x.ok).length:0,v:h?h.bulat:0,nl:h?kkQkg(o)*h.bulat:0}}const r=KK[kkKey(p,'biaya')]||{},jl=kkJlBiaya(o,r,k),br=jl=='Langsung'?0:KK_BEA,bruto=+(r.b&&r.b[k])||0,bea=bruto*br;return{m:o.mp,n:0,v:0,jl,bruto,bea,nl:bruto-bea}}
 function kkSimpanPasar(p){$$('#kk .kkn').forEach(x=>{const d=kkMatData(p,x.dataset.mat,true);d.nt=d.nt||[[],[],[]];(d.nt[+x.dataset.ai]=d.nt[+x.dataset.ai]||[])[+x.dataset.ak]=x.value.trim()});$$('#kk .kkjl').forEach(x=>{const d=kkMatData(p,x.dataset.mat,true);d.jl=x.value;p.o.forEach(o=>{if(isPas(o)&&(o.mp||'Lainnya')==x.dataset.mat)o.jl=x.value})});$$('#kk .kkpb').forEach(x=>{if(x.value=='keep')return;const d=kkMatData(p,x.dataset.mat,true),i=+x.dataset.ai,pool=HP.filter(h=>h.m==x.dataset.mat);d.pb[i]=x.value===''?null:(pool[+x.value]?{...pool[+x.value]}:d.pb[i])});$$('#kk .kkp').forEach(x=>{const d=kkMatData(p,x.dataset.mat,true);d.adj[+x.dataset.ai][+x.dataset.ak]=+x.value||0})}
 function kkCek(p){for(const mat of kkMats(p)){const d=kkMatData(p,mat,false),h=d&&kkHitung(d,kkJl(p,mat,d));if(!h||!h.ok)return 'Pilih 3 pembanding berharga untuk material '+mat+'.';if(!kkWTot(h.wsum).ok)return 'Pembobotan material '+mat+' harus tepat 100% (saat ini '+kkN4(h.wsum)+'%).';if(new Set(d.pb.map(x=>x.l+'|'+x.t+'|'+x.h)).size<3)return 'Tiga pembanding material '+mat+' harus berbeda.'}return ''}
 const kkFold={};   /* status lipat (true = terbuka); disimpan di sini agar tidak hilang saat halaman digambar ulang */
@@ -425,19 +494,20 @@ function kkDetail(s,p,mt){
  if(pas&&!done)kkMats(p).forEach(m=>kkMatData(p,m,true));
  const rs=p.o.map((_,i)=>kkNilai(p,i)),tot=idx.reduce((a,i)=>a+rs[i].nl,0);
  const top=HD('Kertas Kerja Penaksiran · '+KKM[mt],p.no+' · '+p.pd,`<button class="btn o" data-a="bk">← Kembali</button>${lain.map(m=>`<button class="btn o" data-kk2="${p.id}:${m}">Buka Kertas Kerja ${KKM[m]}</button>`).join('')}`)+(ls.length>1?`<div class="al2" style="margin-bottom:14px">Permohonan ini memiliki <b>${ls.length} kertas kerja</b> karena objeknya memakai metode berbeda: ${ls.map(m=>KKM[m]+' ('+(kkDone(p,m)?'selesai':'proses')+')').join(' dan ')}.</div>`:'');
- const body=pas?kkMats(p).map(m=>kkMatSection(p,m,done,idx,rs)).join(''):sec('Perhitungan Nilai Taksiran','Pendekatan Biaya: nilai taksiran diisi manual untuk setiap objek.',done?PL('s-g','Selesai'):'')+`<div class="tw"><table><thead><tr><th>No</th><th>Objek</th><th>Kuantiti</th><th>Metode</th><th>Nilai Taksiran</th></tr></thead><tbody>${idx.map((i,n)=>{const o=p.o[i],x=rs[i];return `<tr><td>${n+1}</td><td>${esc(o.n)}<small>${o.kd} · ${o.jl}</small></td><td>${o.q} ${o.sn}</td><td>${o.mt}</td><td><b><input class="kkb" data-i="${i}" type="number" value="${x.nl}" ${done?'disabled':''} style="width:130px;border:1px solid var(--ln);border-radius:8px;padding:6px"></b></td></tr>`}).join('')}</tbody></table></div></div>`;
+ const body=pas?kkMats(p).map(m=>kkMatSection(p,m,done,idx,rs)).join(''):sec('Perhitungan Nilai Taksiran','Masukkan nilai sebelum bea untuk setiap objek. Penjualan lelang dikenakan bea 2%; penjualan langsung tidak dikenakan bea.',done?PL('s-g','Selesai'):'')+`<div class="tw"><table><thead><tr><th>No</th><th>Objek</th><th>Kuantiti</th><th>Metode Penjualan</th><th>Nilai Sebelum Bea</th><th>Bea Lelang</th><th>Nilai Taksiran</th></tr></thead><tbody>${idx.map((i,n)=>{const o=p.o[i],x=rs[i],jl=kkJlBiaya(o,KK[key],i);return `<tr><td>${n+1}</td><td>${esc(o.n)}<small>${o.kd}</small></td><td>${o.q} ${o.sn}</td><td><select class="kkjlbiaya" data-i="${i}"${done?' disabled':''}><option value="Lelang"${jl=='Lelang'?' selected':''}>Lelang · bea 2%</option><option value="Langsung"${jl=='Langsung'?' selected':''}>Langsung · tanpa bea</option></select></td><td><input class="kkb" data-i="${i}" type="number" value="${x.bruto||0}" ${done?'disabled':''} style="width:130px;border:1px solid var(--ln);border-radius:8px;padding:6px"></td><td>${RP(x.bea||0)}</td><td><b>${RP(x.nl)}</b></td></tr>`}).join('')}</tbody></table></div></div>`;
  s.innerHTML=top+body+`<div class="kzf"><div><small>Total Nilai Taksiran</small><b>${RP(tot)}</b></div><p></p>${done?PL('s-g','Selesai'):`<button class="btn o" data-a="draft">Simpan Draft</button><button class="btn" data-a="fin">Selesaikan Kertas Kerja →</button>`}</div>`;
  s.onclick=e=>{const f=e.target.closest('[data-kkf]');if(f){const k=f.dataset.kkf,c=f.closest(k[0]=='a'?'.kkt':'.kkm2'),shut=c.classList.toggle('shut');kkFold[k]=!shut;f.setAttribute('aria-expanded',String(!shut));return}const wa=e.target.closest('[data-kkwa]');if(wa&&!kkDone(p,mt)){delete kkMatData(p,wa.dataset.kkwa,true).wm;kkSimpanPasar(p);Store.persist();return kkDetail(s,p,mt)}const o2=e.target.closest('[data-kk2]');if(o2){kkResetFold(p);obCur=o2.dataset.kk2;return pgKk()}const b=e.target.closest('[data-a]');if(!b)return;if(b.dataset.a=='bk'){obCur=p.id;return pgKk()}if(done)return;
-  if(pas)kkSimpanPasar(p);else sv(p,key);
+  if(pas)kkSimpanPasar(p);else kkSimpanBiaya(p,key);
   KK[key]=KK[key]||{};
   if(b.dataset.a=='draft'){KK[key].draft=true;KK[key].draftTs=nowStr();Store.persist();toast('Draft Kertas Kerja '+KKM[mt]+' disimpan.');obCur=null;return pgKk()}
   if(pas){const m=kkCek(p);if(m)return toast(m)}
-  KK[key].done=true;KK[key].draft=false;Store.persist();toast('Kertas Kerja '+KKM[mt]+' selesai.'+(kkAllDone(p)?' Laporan tersedia.':' Selesaikan juga kertas kerja lainnya untuk permohonan ini.'));if(kkAllDone(p)){show('lpr');obCur=p.id;return pgLp()}obCur=p.id;pgKk()};
+  KK[key].done=true;KK[key].draft=false;Store.persist();toast('Kertas Kerja '+KKM[mt]+' selesai.'+(kkAllDone(p)?' Laporan Penaksiran tersedia pada kolom Aksi.':' Selesaikan juga kertas kerja lainnya untuk permohonan ini.'));if(kkAllDone(p)){obCur=null;return pgKk()}obCur=p.id;pgKk()};
  s.oninput=e=>{const el=e.target;if(!(pas&&el.classList&&el.classList.contains('kkwb')))return;const sum=$$('#kk .kkwb').filter(x=>x.dataset.mat==el.dataset.mat).reduce((q,x)=>q+(+x.value||0),0),t=$$('#kk [data-kkwt]').find(x=>x.dataset.kkwt==el.dataset.mat),r=kkWTot(Math.round(sum*1e4)/1e4);if(t){t.innerHTML=r.h;t.className='kkwt '+(r.ok?'ok':'bad')}};
  s.onchange=e=>{if(kkDone(p,mt))return;const el=e.target,cls=String(el.className||'').split(' ')[0];
   if(pas&&cls=='kkwb'){const d=kkMatData(p,el.dataset.mat,true);d.wm=$$('#kk .kkwb').filter(x=>x.dataset.mat==el.dataset.mat).sort((a,b)=>a.dataset.ai-b.dataset.ai).map(x=>+x.value||0)}
-  if(pas)kkSimpanPasar(p);else sv(p,key);Store.persist();
-  if(pas&&['kkwb','kkjl','kkp','kkpb'].includes(cls))setTimeout(()=>{const a=document.activeElement,ok=a&&a.dataset&&a.dataset.mat!=null,ac=ok?String(a.className||'').split(' ')[0]:'',m=ok&&a.dataset.mat,ai=ok&&a.dataset.ai,ak=ok&&a.dataset.ak;kkDetail(s,p,mt);if(ac){const n=$$('#kk .'+ac).find(x=>x.dataset.mat==m&&x.dataset.ai==ai&&x.dataset.ak==ak);if(n){n.focus();if(n.select&&n.type=='number')n.select()}}},0)}}
+  if(pas)kkSimpanPasar(p);else kkSimpanBiaya(p,key);Store.persist();
+  if(pas&&['kkwb','kkjl','kkp','kkpb'].includes(cls))setTimeout(()=>{const a=document.activeElement,ok=a&&a.dataset&&a.dataset.mat!=null,ac=ok?String(a.className||'').split(' ')[0]:'',m=ok&&a.dataset.mat,ai=ok&&a.dataset.ai,ak=ok&&a.dataset.ak;kkDetail(s,p,mt);if(ac){const n=$$('#kk .'+ac).find(x=>x.dataset.mat==m&&x.dataset.ai==ai&&x.dataset.ak==ak);if(n){n.focus();if(n.select&&n.type=='number')n.select()}}},0);
+  if(!pas&&['kkjlbiaya','kkb'].includes(cls))kkDetail(s,p,mt)}}
 function kkPilihMetode(s,p){
  const metode=kkMetList(p);
  s.innerHTML=HD('Kertas Kerja Penaksiran',p.no+' · '+p.pd,'<button class="btn o" data-kk-back>← Kembali</button>')+
@@ -448,15 +518,66 @@ function kkPilihMetode(s,p){
 function pgKk(){syncTksToObjects();kkMigrasi();const s=$('#kk'),ps=OB.filter(p=>p.st=='Posted'&&kkMetList(p).length),[pid,mt]=String(obCur||'').split(':');
  if(mt&&KKM[mt]){const p=ps.find(x=>x.id==pid);if(p)return kkDetail(s,p,mt)}
  if(pid){const p=ps.find(x=>x.id==pid);if(p)return kkPilihMetode(s,p)}
- s.innerHTML=HD('Kertas Kerja Penaksiran','')+sec('Permohonan Siap Ditaksir','Pilih permohonan untuk melihat metode pendekatan yang digunakan pada objeknya.')+(ps.length?`<div class="tw"><table><thead><tr><th>No</th><th>Permohonan</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Jumlah Objek</th><th>Pendekatan</th><th>Aksi</th></tr></thead><tbody>${ps.map((p,i)=>`<tr><td>${i+1}</td><td><b>${esc(p.no)}</b></td><td>${fd(p.tgl)}</td><td>${esc(p.pd)}</td><td>${p.o.length}</td><td>${kkMetList(p).length} pendekatan</td><td><button class="btn sm" data-kk-open="${esc(p.id)}">Pilih Pendekatan</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada permohonan Posted','Posting permohonan dari Daftar Objek Penaksiran.'))+'</div>';
- s.onclick=e=>{const b=e.target.closest('[data-kk-open]');if(b){obCur=b.dataset.kkOpen;pgKk()}}}
-function sv(p,key){const r=KK[key]=KK[key]||{m:{},a:{},b:{}};$$('#kk .kkm').forEach(x=>r.m[x.dataset.i]=x.value);$$('#kk .kka').forEach(x=>r.a[x.dataset.i]=+x.value);$$('#kk .kkb').forEach(x=>r.b[x.dataset.i]=+x.value)}
-function pgLp(){syncTksToObjects();kkMigrasi();const s=$('#lpr'),ps=OB.filter(kkAllDone);
- if(obCur&&ps.find(p=>p.id==obCur)){const p=OB.find(x=>x.id==obCur),rs=p.o.map((_,i)=>kkNilai(p,i)),tot=rs.reduce((a,x)=>a+x.nl,0),ls=kkMetList(p),sub=m=>p.o.reduce((a,o,i)=>a+(kkMet(o)==m?rs[i].nl:0),0);
-  s.innerHTML=HD('Laporan Penaksiran',p.no,`<button class="btn o" data-a="bk">← Kembali</button><button class="btn" data-a="pr">Cetak Laporan</button>`)+`<div class="s4">${[['Jumlah Objek',p.o.length,'objek'],['Total Kuantiti',p.o.reduce((a,o)=>a+o.q,0).toLocaleString('id-ID'),'unit/kg'],['Nilai Taksiran',RP(tot),''],['Status','Final',ls.length>1?ls.length+' kertas kerja selesai':'kertas kerja selesai']].map(x=>`<div class="sc"><u style="background:#eff6ff;color:var(--bl)"><svg class="i"><use href="#c"/></svg></u><small>${x[0]}</small><b style="font-size:${String(x[1]).length>9?18:26}px">${x[1]}</b><small>${x[2]}</small></div>`).join('')}</div>`+sec('Rincian Penaksiran',p.pf)+`<div class="tw"><table><thead><tr><th>No</th><th>Objek</th><th>Kuantiti</th><th>Metode</th><th>Penjualan</th><th>Nilai Taksiran</th></tr></thead><tbody>${p.o.map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}</td><td>${o.q} ${o.sn}</td><td>${o.mt}</td><td>${o.jl}</td><td>${RP(rs[i].nl)}</td></tr>`).join('')}</tbody></table></div>${ls.length>1?`<div style="text-align:right;margin-top:12px;font-size:13px">${ls.map(m=>'Subtotal '+KKM[m]+': <b>'+RP(sub(m))+'</b>').join(' &nbsp;·&nbsp; ')}</div>`:''}</div>`;
-  s.onclick=e=>{const a=(e.target.closest('[data-a]')||{dataset:{}}).dataset.a;if(a=='bk'){obCur=null;pgLp()}if(a=='pr'){const w=window.open('','_blank');if(!w)return toast('Pop-up diblokir browser.');w.document.write(`<title>Laporan ${p.no}</title><body style="font:14px Arial;padding:40px"><h2 style="text-align:center">LAPORAN PENAKSIRAN BMD</h2><p>${p.no} · ${p.pd} · ${fd(p.tgl)}</p><p>${esc(p.pf)}</p><table border=1 cellpadding=6 style="border-collapse:collapse;width:100%"><tr><th>No</th><th>Objek</th><th>Kuantiti</th><th>Metode</th><th>Nilai</th></tr>${p.o.map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}</td><td>${o.q} ${o.sn}</td><td>${o.mt}</td><td align=right>${RP(rs[i].nl)}</td></tr>`).join('')}${ls.length>1?ls.map(m=>`<tr><td colspan=4 align=right>Subtotal ${KKM[m]}</td><td align=right>${RP(sub(m))}</td></tr>`).join(''):''}<tr><td colspan=4 align=right><b>Total</b></td><td align=right><b>${RP(tot)}</b></td></tr></table>`);w.document.close()}};return}
- s.innerHTML=HD('Laporan Penaksiran','')+sec('Laporan Tersedia','Muncul setelah semua Kertas Kerja Penaksiran pada permohonan itu diselesaikan.')+(ps.length?`<div class="tw"><table><thead><tr><th>No</th><th>Permohonan</th><th>Perangkat Daerah</th><th>Objek</th><th>Kertas Kerja</th><th>Aksi</th></tr></thead><tbody>${ps.map((p,i)=>`<tr><td>${i+1}</td><td>${p.no}</td><td>${p.pd}</td><td>${p.o.length}</td><td>${kkMetList(p).length}</td><td><button class="btn sm" data-lp="${p.id}">Lihat Laporan</button></td></tr>`).join('')}</tbody></table></div>`:EM('Belum ada laporan','Selesaikan Kertas Kerja Penaksiran terlebih dahulu.'))+'</div>';
- s.onclick=e=>{const b=e.target.closest('[data-lp]');if(b){obCur=+b.dataset.lp;pgLp()}}}
+ s.innerHTML=HD('Kertas Kerja Penaksiran','')+sec('Permohonan Siap Ditaksir','Pilih pendekatan untuk membuka kertas kerja. Laporan Penaksiran dapat dipratinjau dan diunduh setelah seluruh kertas kerja selesai.')+(ps.length?`<div class="tw"><table><thead><tr><th>No</th><th>Permohonan</th><th>Tanggal</th><th>Perangkat Daerah</th><th>Jumlah Objek</th><th>Pendekatan</th><th>Aksi</th></tr></thead><tbody>${ps.map((p,i)=>{const ready=kkAllDone(p);return `<tr><td>${i+1}</td><td><b>${esc(p.no)}</b></td><td>${fd(p.tgl)}</td><td>${esc(p.pd)}</td><td>${p.o.length}</td><td>${kkMetList(p).length} pendekatan</td><td><div class="mtg"><button class="btn sm" data-kk-open="${esc(p.id)}">Pilih Pendekatan</button><button class="btn o sm" data-kk-report="${esc(p.id)}"${ready?'':' disabled title="Selesaikan seluruh kertas kerja terlebih dahulu"'}>Laporan Penaksiran</button></div></td></tr>`}).join('')}</tbody></table></div>`:EM('Belum ada permohonan Posted','Posting permohonan dari Daftar Objek Penaksiran.'))+'</div>';
+ s.onclick=e=>{const r=e.target.closest('[data-kk-report]');if(r){const p=ps.find(x=>String(x.id)===r.dataset.kkReport);if(!p)return;if(!kkAllDone(p))return toast('Selesaikan seluruh Kertas Kerja Penaksiran terlebih dahulu.');return lpPreview(p)}const b=e.target.closest('[data-kk-open]');if(b){obCur=b.dataset.kkOpen;pgKk()}}}
+function kkSimpanBiaya(p,key){const r=KK[key]=KK[key]||{m:{},a:{},b:{},jl:{}};r.b=r.b||{};r.jl=r.jl||{};$$('#kk .kkb').forEach(x=>r.b[x.dataset.i]=+x.value||0);$$('#kk .kkjlbiaya').forEach(x=>{const i=+x.dataset.i;r.jl[i]=x.value;p.o[i].jl=x.value})}
+let kpknlCur=null;
+function kpknlSelect(no){
+ if(!isAdmin())return deny();
+ const d=R.find(x=>x[0]===no),S=SVS[no];
+ if(!d||!S||!psjOk(no))return toast('Persetujuan Kepala Daerah harus selesai sebelum memilih Penilaian KPKNL.');
+ const x=RX[no]=RX[no]||{h:[]};
+ x.kpknl=x.kpknl||{};
+ x.kpknl.route='KPKNL';
+ x.kpknl.selectedAt=x.kpknl.selectedAt||Date.now();
+ if(!x.kpknl.logged){x.kpknl.logged=true;hs(no,'Jalur Penilaian KPKNL dipilih','Admin')}
+ kpknlCur=no;Store.persist();show('kpknl')
+}
+function pgKpknl(){
+ const s=$('#kpknl');
+ if(!isAdmin())return deny();
+ if(kpknlCur){
+  const d=R.find(x=>x[0]===kpknlCur),x=RX[kpknlCur]&&RX[kpknlCur].kpknl;
+  if(!d||!x||!kpknlRoute(kpknlCur)){kpknlCur=null;return pgKpknl()}
+  s.innerHTML=HD('Laporan Penilaian KPKNL',kpknlCur+' · '+d[1],'<button class="btn o" data-kpknl-back>Kembali</button>')+
+   sec('Surat Penilaian KPKNL','Isi nomor dan tanggal surat hasil penilaian KPKNL.')+
+   `<div class="ff"><label class="l2">Nomor Surat Penilaian KPKNL<input id="kpknl_no" type="text" value="${esc(x.nomor||'')}" placeholder="Contoh: 000.2.3.2/100-BKAD"></label><label class="l2">Tanggal Surat Penilaian KPKNL<input id="kpknl_tgl" type="date" value="${esc(x.tgl||'')}"></label></div>`+kpSec(kpknlCur,x)+
+   `<div style="display:flex;justify-content:flex-end;gap:8px;margin:14px 0 20px"><button class="btn o" data-kpknl-cancel>Batalkan Pilihan KPKNL</button><button class="btn" data-kpknl-save>Submit Penilaian KPKNL</button></div>`+
+   `<small class="mt">Jika dibatalkan (unpost), permohonan dihapus dari daftar Laporan Penilaian KPKNL, data surat dan daftar barang KPKNL dihapus, lalu kembali ke menu Persetujuan Kepala Daerah dan jalur penaksiran.</small>`+
+   (x.status=='Tersimpan'?sec('Status Penilaian','',PL('s-g','Tersimpan')+`<small class="mt" style="margin-left:8px">Nomor ${esc(x.nomor)} · ${fd(x.tgl)}</small>`):'')+
+   sec('Alur Permohonan','Jalur ini melewati Permohonan Penaksiran, Daftar Objek Penaksiran, Kertas Kerja Penaksiran, dan SK Nilai Limit.')+'</div>';
+  s.oninput=kpInput;
+  s.onclick=e=>{
+   if(kpClick(e,kpknlCur,x))return;
+   if(e.target.closest('[data-kpknl-back]')){kpknlCur=null;return pgKpknl()}
+   if(e.target.closest('[data-kpknl-cancel]')){
+    const no=kpknlCur;
+    return cfm('Batalkan Penilaian KPKNL?','Permohonan '+no+' akan dihapus dari daftar Laporan Penilaian KPKNL dan kembali ke Persetujuan Kepala Daerah. Data surat dan daftar barang KPKNL akan dihapus.',()=>{
+     if(RX[no])delete RX[no].kpknl;
+     hs(no,'Penilaian KPKNL dibatalkan','Kembali ke Persetujuan Kepala Daerah');
+     Store.persist();kpknlCur=null;fl();
+     show('psj');
+     toast('Penilaian KPKNL dibatalkan. Permohonan kembali ke Persetujuan Kepala Daerah.')
+    },'Ya, Batalkan')
+   }
+   if(!e.target.closest('[data-kpknl-save]'))return;
+   const nomor=$('#kpknl_no').value.trim(),tgl=$('#kpknl_tgl').value;
+   if(!nomor)return toast('Isi nomor surat Penilaian KPKNL.');
+   if(!tgl)return toast('Isi tanggal surat Penilaian KPKNL.');
+   kpCollect(x);
+   if(!kpTot(x.items||[]))return toast('Isi minimal satu barang beserta nilainya pada Daftar Barang / Ringkasan Penilaian.');
+   x.nomor=nomor;x.tgl=tgl;x.status='Tersimpan';x.ts=nowStr();
+   hs(kpknlCur,'Penilaian KPKNL disimpan','Nomor '+nomor+' · '+tgl);
+   Store.persist();kpknlCur=null;pgKpknl();fl();
+   toast('Penilaian KPKNL berhasil disimpan. Tahap penaksiran dan tahap setelahnya dilewati.')
+  };return
+ }
+ const r=R.filter(d=>d[6]=='Disetujui'&&psjOk(d[0])&&kpknlRoute(d[0]));
+ s.innerHTML=HD('Laporan Penilaian KPKNL','Modul 2')+
+  sec('Daftar Permohonan','Hanya permohonan yang dipilih lewat tombol Penilaian KPKNL di menu Persetujuan Kepala Daerah yang tampil di sini.')+
+  (r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Permohonan</th><th>Perangkat Daerah</th><th>Persetujuan Kepala Daerah</th><th>Status Penilaian KPKNL</th><th>Aksi</th></tr></thead><tbody>${r.map((d,i)=>{const x=(RX[d[0]]||{}).kpknl||{},pers=((SVS[d[0]]||{}).psj||{}).f||{};return `<tr><td>${i+1}</td><td><b>${esc(d[0])}</b></td><td>${esc(d[1])}</td><td>${esc(pers.nomor||'Selesai')}</td><td>${x.status=='Tersimpan'?PL('s-g','Tersimpan'):PL('s-o','Dipilih, belum disubmit')}</td><td><button class="btn sm" data-kpknl="${esc(d[0])}">${x.status=='Tersimpan'?'Lihat / Ubah':'Lanjutkan'}</button></td></tr>`}).join('')}</tbody></table></div>`:EM('Belum ada permohonan di Laporan Penilaian KPKNL','Klik tombol Penilaian KPKNL pada permohonan di menu Persetujuan Kepala Daerah untuk memasukkannya ke sini.'))+'</div>';
+ s.onclick=e=>{const b=e.target.closest('[data-kpknl]');if(b)kpknlSelect(b.dataset.kpknl)}
+}
 let hpAdd=false;const MT=['Besi','Aluminium','Baja','Plastik','Kertas','Lainnya']; 
 function pgHp(){const s=$('#hp'),f=s.dataset.f||'';
  s.innerHTML=HD('Harga Pembanding','',`<button class="btn" data-a="ad">＋ Tambah Harga Pembanding</button>`)+(hpAdd?sec('Tambah Harga Pembanding','')+`<div class="ff">${FL('h_t','Tanggal Update Harga',today(),'date')}${FL('h_l','Nama Lapak / Pengepul','')}${FL('h_a','Area / Wilayah','')}${FL('h_al','Alamat Lengkap / Link Maps','')}${FL('h_k','Nomor Kontak','')}${FL('h_m','Jenis Material','Besi','text',0,MT)}${FL('h_s','Satuan Harga','Rp/Kg','text',0,['Rp/Kg','Rp/Batang'])}${FL('h_h','Harga Beli','','number')}</div><div style="text-align:right;margin-top:12px"><button class="btn o" data-a="ca">Batal</button> <button class="btn" data-a="sv">Simpan Harga</button></div></div>`:'')+
@@ -500,10 +621,9 @@ function pgDm(){
       : EM('Belum ada data','Data master akan muncul di sini.')
     ) + '</div>';
 }
- const PG={sv:pgSv,pt:pgPt,psj:pgPsj,ob:pgOb,kk:pgKk,lpr:pgLp,hp:pgHp,rf:pgRf,dm:pgDm,pmp:pgPerpen,tksadm:pgTksAdmin,sk:pgSk,lel:pgLel,lgs:pgLgs},_s2=show;
-show=function(v,b){svCur=penCur=psjCur=tksCur=tksAdminCur=obCur=obEd=rfCur=pjCur=skCur=null;hpAdd=false;_s2(v,b);pjSyncMenu();if(PG[v])PG[v]()};
+ const PG={sv:pgSv,pt:pgPt,psj:pgPsj,ob:pgOb,kk:pgKk,kpknl:pgKpknl,hp:pgHp,rf:pgRf,dm:pgDm,pmp:pgPerpen,tksadm:pgTksAdmin,sk:pgSk,lpr:pgLp,lel:pgLel,lgs:pgLgs,phu:pgPhu,phua:pgPhua,phs:pgPhs,phsl:pgPhsl},_s2=show;
+show=function(v,b){svCur=penCur=psjCur=tksCur=tksAdminCur=obCur=obEd=rfCur=pjCur=skCur=lwCur=null;hpAdd=false;_s2(v,b);pjSyncMenu();if(PG[v])PG[v]()};
 $$('.nav').forEach(n=>n.onclick=()=>navClick(n));
-
 
 let editPending=false,admCur=null,admRO=false,admPgV=1;
 function cfm(t,m,ok,okTxt,only){let o=$('#mdl');if(!o){o=document.createElement('div');o.id='mdl';o.className='mdl';o.innerHTML='<div class="mbx"><h3></h3><p></p><div class="mft"><button class="btn o" data-x="0">Batal</button><button class="btn" data-x="1"></button></div></div>';document.body.appendChild(o)}
@@ -515,7 +635,8 @@ function rowMenu(i,btn){rmClose();const d=R[i],r=btn.getBoundingClientRect(),m=d
  m.innerHTML=`<button data-m="h">Lihat Riwayat</button>${bolehTulis(d)&&d[6]=='Draft'?'<button data-m="x" class="dg">Hapus Draft</button>':''}`;m.style.left=Math.max(8,r.right-170)+'px';document.body.appendChild(m);const h=m.offsetHeight;m.style.top=(r.bottom+6+h>innerHeight?Math.max(8,r.top-h-6):r.bottom+6)+'px';
  m.onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;rmClose();if(b.dataset.m=='h')detail(i,R,2);else if(!bolehTulis(d))deny();else cfm('Hapus draft?','Draft '+d[0]+' akan dihapus permanen.',()=>{R.splice(i,1);delete RX[d[0]];fl();toast('Draft dihapus.')},'Hapus')}}
 
- /* Surat Permohonan: dibuat otomatis (Word) dari isian, lalu diunggah kembali setelah ditandatangani. Blob disimpan di f.files[0], metadata di f.ttd */
+ /* 
+ Surat Permohonan: dibuat otomatis (Word) dari isian, lalu diunggah kembali setelah ditandatangani. Blob disimpan di f.files[0], metadata di f.ttd */
 var suratTtd=null;
 function genRow(ok){const u=$('.upl.gen');if(!u)return;const t=ok?suratTtd:null;u.classList.toggle('y',!!t);
  $('#gtx').textContent=!ok?'Dibuat otomatis setelah nomor dan tanggal surat terisi.':t?t.n+' · '+Math.max(1,Math.round(t.sz/1024))+' KB · sudah ditandatangani':SURAT_DOCX_NAME+' · dibuat otomatis (Word). Unduh lewat Pratinjau, tanda tangani, lalu upload hasilnya di sini.';
@@ -523,13 +644,13 @@ function genRow(ok){const u=$('.upl.gen');if(!u)return;const t=ok?suratTtd:null;
 function suratTtdPick(){if(!can('permohonan.kelola'))return deny();const i=document.createElement('input');i.type='file';i.accept='application/pdf,image/png,image/jpeg';
  i.onchange=()=>{const f=i.files[0];if(!f)return;if(!/^(application\/pdf|image\/(png|jpeg))$/.test(f.type))return toast('Format harus PDF, JPG, atau PNG.');if(f.size>5*1048576)return toast('Ukuran file melebihi 5 MB.');
   suratTtd={n:f.name,sz:f.size,ty:f.type,ts:nowStr(),blob:f};sum();toast('Surat Permohonan bertanda tangan berhasil diunggah.')};i.click()}
-function collect(){const up=$$('.upl'),f={jn:$('input[name=jn]:checked').value,no:$('#fn').value.trim(),tgl:$('#fd').value,pd:$('#fpd').value,pf:$('#fp2').value.trim(),kepala:$('#fkp').value.trim(),nip:$('#fnip').value.trim(),alamat:$('#fal').value.trim(),kib:$$('.kb:checked').map(x=>+x.dataset.k)};
+function collect(){const up=$$('.upl'),f={jn:jenisPermohonan(),no:$('#fn').value.trim(),tgl:$('#fd').value,pd:$('#fpd').value,pf:jenisPermohonan(),kepala:$('#fkp').value.trim(),nip:$('#fnip').value.trim(),alamat:$('#fal').value.trim(),kib:$$('.kb:checked').map(x=>+x.dataset.k)};
  f.docs=up.map((u,k)=>{if(k==0)return suratSiap(f)&&suratTtd?suratTtd.n:'';const g=u.querySelector('input[type=file]').files[0];return g?g.name:(u.classList.contains('y')?(u.dataset.nm||'dokumen.pdf'):'')});
  f.files=up.map((u,k)=>k==0?(suratTtd?suratTtd.blob:null):(u._file||null));f.ttd=suratTtd?{n:suratTtd.n,sz:suratTtd.sz,ty:suratTtd.ty,ts:suratTtd.ts}:null;
  return f}
-function rowFrom(f,s){const ks=f.kib.map(i=>K[i]),t=new Date(f.tgl||Date.now());return[f.no,f.pd,ks.length?ks[0][2]+(ks.length>1?` +${ks.length-1} lainnya`:''):'-',ks.length?ks[0][1]:'-',f.jn,t.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}),s,ks.length?ks[0][3]:'-','-',ks.length?ks[0][4]:'-',f.pf||'-',f.docs.filter(Boolean).length+' file',ks.length?'B':'-']}
+function rowFrom(f,s){const ks=f.kib.map(i=>K[i]),t=new Date(f.tgl||Date.now());return[f.no,f.pd,ks.length?ks[0][2]+(ks.length>1?` +${ks.length-1} lainnya`:''):'-',ks.length?ks[0][1]:'-',f.jn,t.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}),s,ks.length?ks[0][3]:'-','-',ks.length?ks[0][4]:'-',f.jn||'-',f.docs.filter(Boolean).length+' file',ks.length?'B':'-']}
 function missing(f){const m=[],dn=['Surat Permohonan','Surat Kajian / BA Penelitian','Surat Perintah','Surat Pernyataan'];if(!f.no)m.push('Nomor surat');if(!f.tgl)m.push('Tanggal surat');if(!f.pf)m.push('Perihal');f.docs.forEach((x,i)=>{if(!x)m.push(i==0?'Upload Surat Permohonan yang sudah ditandatangani':dn[i])});if(!f.kib.length)m.push('Barang KIB');return m}
-function resetForm(){editNo=null;suratTtd=null;$$('.rjn').forEach(x=>x.remove());$('#ff').reset();$$('.upl:not(.gen)').forEach(u=>{u._file=null;u.classList.remove('y');u.dataset.nm='';u.querySelector('small').textContent='PDF, maksimal 5 MB';u.querySelector('.bt').firstChild.textContent='Pilih File'});$('#fal').value=alamatOpdTerakhir($('#fpd').value||(CUR&&CUR.opd));sum()}
+function resetForm(){editNo=null;suratTtd=null;$$('.rjn').forEach(x=>x.remove());$$('.kb,.upl input[type=file],#gp,#gu,#gx,input[name=jn],#fn,#fd,#fpd,#fkp,#fnip,#fal,#fp2').forEach(x=>x.disabled=false);$$('.upl .bt').forEach(x=>{x.style.pointerEvents='';x.style.opacity=''});$('#ff').reset();$$('.upl:not(.gen)').forEach(u=>{u._file=null;u.classList.remove('y');u.dataset.nm='';u.querySelector('small').textContent='PDF, maksimal 5 MB';u.querySelector('.bt').firstChild.textContent='Pilih File'});$('#fal').value=alamatOpdTerakhir($('#fpd').value||(CUR&&CUR.opd));syncPerihal();sum()}
 function alamatPermohonan(no){return((RX[no]||{}).f||{}).alamat||''}
 function alamatOpdTerakhir(pd){const d=R.find(r=>r[1]==pd&&((RX[r[0]]||{}).f||{}).alamat);return d?RX[d[0]].f.alamat:''}
 function diffForm(a,b){const c=[],dn=['Surat Permohonan','Surat Kajian','Surat Perintah','Surat Pernyataan'];a=a||{docs:[],kib:[]};
@@ -553,11 +674,26 @@ function kirim(dr){if(!can('permohonan.kelola'))return deny();const f=collect();
  const prev=old?(RX[old[0]]||{}).f:null,chg=old?diffForm(prev,f):[];
  if(old&&dr&&!chg.length)return toast('Tidak ada perubahan yang perlu disimpan.');
  const rev=!!old&&old[6]=='Ditolak';
- if(rev&&!dr){const rj=(RX[old[0]]||{}).rj,blm=rj?cnRej(old[0]).filter(i=>sigDoc(f,i)===rj[i]).map(i=>i==0?'Surat Permohonan (ubah isian formulir)':DOCN[i]):[];if(blm.length)return toast('Dokumen yang ditolak belum diganti: '+blm.join(', ')+'.')}
+ if(rev&&!dr){
+  const rj=(RX[old[0]]||{}).rj,blm=rj?cnRej(old[0]).filter(i=>sigDoc(f,i)===rj[i]).map(i=>i==0?'Surat Permohonan (ubah isian formulir)':DOCN[i]):[];
+  if(blm.length)return toast('Dokumen yang ditolak belum diganti: '+blm.join(', ')+'.');
+  const kibBelum=kbRej(old[0]).filter(q=>f.kib.includes(q));
+  if(kibBelum.length)return toast('Barang KIB yang ditolak harus dihapus atau diganti sebelum diajukan ulang: '+kibBelum.map(q=>K[q][2]).join(', ')+'.');
+ }
  const go=async()=>{
   const s=dr?(old?old[6]:'Draft'):'Menunggu Verifikasi',row=rowFrom(f,s);
   if(old){if(old[0]!=f.no){RX[f.no]=RX[old[0]];delete RX[old[0]]}R[idx]=row}else R.unshift(row);
-  (RX[f.no]=RX[f.no]||{h:[]}).f=f;if(!dr){RX[f.no].chk=[];RX[f.no].cn=[];RX[f.no].kv={};RX[f.no].kn={};if(rev){RX[f.no].cat='';delete RX[f.no].rj}}
+  const x=RX[f.no]=RX[f.no]||{h:[]};
+  x.f=f;
+  if(!dr){
+   if(rev){
+    const keep=x.keep||{docs:{},kib:[]},chk=[],kv={},cn=[],kn=[];
+    Object.keys(keep.docs||{}).forEach(i=>{if(f.docs[i]&&sigDoc(f,+i)===keep.docs[i])chk[i]='ok'});
+    (keep.kib||[]).forEach(q=>{if(f.kib.includes(q))kv[q]='ok'});
+    x.chk=chk;x.kv=kv;x.cn=cn;x.kn=kn;x.cat='';
+    delete x.rj;
+   }else{x.chk=[];x.cn=[];x.kv={};x.kn={}}
+  }
   if(!old)hs(f.no,'Draft dibuat',CUR.name);else if(chg.length)hs(f.no,rev?'Revisi disimpan':'Draft diedit',CUR.name+' · '+chg.join(', '));
   if(!dr)hs(f.no,rev?'Diajukan ulang setelah revisi':'Diajukan untuk verifikasi Admin',CUR.name);
   await Store.persist();
@@ -569,15 +705,30 @@ function ajukan(i){if(!bolehTulis(R[i]))return deny();if(R[i][6]!='Draft')return
  cfm('Ajukan untuk verifikasi?','Setelah diajukan, permohonan tidak dapat diedit lagi. Anda masih bisa menariknya kembali selama belum diperiksa Admin.',async()=>{try{await suratSimpan(d[0])}catch(er){return toast('Gagal menyiapkan surat: '+er.message)}d[6]='Menunggu Verifikasi';(RX[d[0]]=RX[d[0]]||{h:[]}).chk=[];RX[d[0]].cn=[];RX[d[0]].kv={};RX[d[0]].kn={};hs(d[0],'Diajukan untuk verifikasi Admin',CUR.name);await Store.persist();fl();toast('Permohonan diajukan ke Admin.')},'Ajukan')}
 function tarik(i){if(!bolehTulis(R[i]))return deny();if(R[i][6]!='Menunggu Verifikasi')return toast('Hanya permohonan yang menunggu verifikasi yang dapat ditarik.');const d=R[i];cfm('Tarik kembali permohonan?','Status kembali menjadi Draft dan dapat diedit lagi.',()=>{d[6]='Draft';hs(d[0],'Ditarik kembali oleh pemohon',CUR.name);fl();toast('Permohonan ditarik kembali menjadi Draft.')},'Tarik Kembali')}
 function editRow(i){if(!bolehTulis(R[i]))return deny();if(!EDIT_OK[R[i][6]])return toast('Permohonan sudah diajukan dan tidak dapat diedit.');const d=R[i],f=(RX[d[0]]||{}).f||{jn:d[4],no:d[0],tgl:today(),pd:d[1],pf:d[10]=='-'?'':d[10],docs:[],kib:[]};editNo=d[0];editPending=true;show('form');
- $$('input[name=jn]').forEach(r=>r.checked=r.value==f.jn);$('#fn').value=f.no;$('#fd').value=f.tgl||today();$('#fpd').value=f.pd;$('#fp2').value=f.pf||'';$('#fkp').value=f.kepala||'';$('#fnip').value=f.nip||'';$('#fal').value=f.alamat||'';
+ const jn=f.jn=='Pemindahtanganan'?'Pemindahtanganan':'Izin Bongkar';$$('input[name=jn]').forEach(r=>r.checked=r.value==jn);$('#fn').value=f.no;$('#fd').value=f.tgl||today();$('#fpd').value=f.pd;syncPerihal();$('#fkp').value=f.kepala||'';$('#fnip').value=f.nip||'';$('#fal').value=f.alamat||'';
  $$('.upl').forEach((u,k)=>{if(k==0)return;const n=f.docs[k]||'';u._file=(f.files||[])[k]||null;u.querySelector('input[type=file]').value='';u.dataset.nm=n;u.classList.toggle('y',!!n);u.querySelector('small').textContent=n?n+' · tersimpan':'PDF, maksimal 5 MB';u.querySelector('.bt').firstChild.textContent=n?'Ganti':'Pilih File'});
  suratTtd=f.ttd&&(f.files||[])[0]?Object.assign({},f.ttd,{blob:f.files[0]}):null;
  $$('.kb').forEach((c,k)=>c.checked=f.kib.includes(k));$('#ka').checked=$$('.kb').every(c=>c.checked);sum();formMode()}
 function formMode(){const e=!!editNo,d=e?R.find(x=>x[0]==editNo):null;const rv=!!d&&d[6]=='Ditolak';$('#form .bn h1').textContent=rv?'Perbaiki Permohonan':e?'Edit Permohonan':'Buat Permohonan';
- $('#form .bn p').textContent=rv?'Permohonan ditolak Admin. Perbaiki sesuai keterangan di bawah, ganti dokumen yang ditolak, lalu ajukan ulang.':e?'':'Lengkapi identitas, unggah 3 dokumen persyaratan serta Surat Permohonan yang sudah ditandatangani (dibuat otomatis), lalu pilih barang dari daftar KIB. Simpan sebagai draft dulu sebelum diajukan.';
+ $('#form .bn p').textContent=rv?'Permohonan ditolak Admin. Perbaiki sesuai keterangan di bawah, ganti dokumen yang ditolak, lalu ajukan ulang.':e?'':'';
  const p=$('#form .bn .stt');p.className='stt '+(d?d[6]:'Draft');p.textContent=d?d[6]:'Draft';$('#aj').textContent=rv?'Simpan & Ajukan Ulang':e?'Simpan & Ajukan Verifikasi':'Ajukan Verifikasi';$('#dr').textContent=e?(rv?'Simpan Revisi':'Simpan Perubahan'):'Simpan Draft';
- $$('.rjn').forEach(x=>x.remove());if(rv)cnList(d[0]).forEach(([i,n,t])=>{const u=$$('.upl')[i];if(u)u.insertAdjacentHTML('afterend',`<div class="rjn"><b>${i==0?'Ditolak, perbaiki isian formulir lalu upload ulang surat yang sudah ditandatangani.':'Ditolak, ganti dokumen ini.'}</b> ${esc(t)}</div>`)});
- if(rv)kbRej(d[0]).forEach(q=>{const cb=$(`.kb[data-k="${q}"]`),td=cb&&cb.closest('tr').children[3];if(td)td.insertAdjacentHTML('beforeend',`<div class="rjn" style="margin:6px 0 0"><b>Barang ditolak.</b> ${esc(kvN(d[0],q).trim()||'Lihat catatan Admin.')}</div>`)});
+ $$('.rjn').forEach(x=>x.remove());
+ if(rv){
+  const x=RX[d[0]]||{},f=x.f||{},keep=x.keep||{docs:{},kib:[]};
+  const dokTerkunci=Object.keys(keep.docs||{}).filter(i=>f.docs&&f.docs[i]&&sigDoc(f,+i)===keep.docs[i]).map(Number);
+  if(dokTerkunci.includes(0)){
+   ['input[name=jn]','#fn','#fd','#fpd','#fkp','#fnip','#fal','#fp2'].forEach(sel=>$$(sel).forEach(el=>{el.disabled=true}));
+   ['#gp','#gu','#gx'].forEach(sel=>{const el=$(sel);if(el)el.disabled=true});
+  }
+  dokTerkunci.forEach(i=>{
+   const u=$$('.upl')[i];if(!u)return;
+   if(i>0){const inp=u.querySelector('input[type=file]');if(inp)inp.disabled=true;const bt=u.querySelector('.bt');if(bt){bt.style.pointerEvents='none';bt.style.opacity='.6'}}
+   u.insertAdjacentHTML('afterend',`<div class="rjn"><b>Sesuai pada pemeriksaan sebelumnya.</b> Dokumen ini tetap terkunci dan tidak perlu diunggah ulang.</div>`);
+  });
+  cnList(d[0]).forEach(([i,n,t])=>{if(dokTerkunci.includes(i))return;const u=$$('.upl')[i];if(u)u.insertAdjacentHTML('afterend',`<div class="rjn"><b>${i==0?'Ditolak, perbaiki isian formulir lalu upload ulang surat yang sudah ditandatangani.':'Ditolak, ganti dokumen ini.'}</b> ${esc(t)}</div>`)});
+  (keep.kib||[]).forEach(q=>{const cb=$(`.kb[data-k="${q}"]`);if(cb){cb.checked=true;cb.disabled=true;const td=cb.closest('tr').children[3];td.insertAdjacentHTML('beforeend','<div<b></b></div>')}});
+  kbRej(d[0]).forEach(q=>{const cb=$(`.kb[data-k="${q}"]`),td=cb&&cb.closest('tr').children[3];if(td)td.insertAdjacentHTML('beforeend',`<div class="rjn" style="margin:6px 0 0"><b>Barang ditolak.</b> ${esc(kvN(d[0],q).trim()||'Lihat catatan Admin.')} Hapus pilihan ini atau pilih barang KIB pengganti sebelum mengajukan ulang.</div>`)});
+ }
  let n=$('#fnote');if(!n){n=document.createElement('div');n.id='fnote';n.className='al2';$('#form .sw').before(n)}const c=e&&(RX[editNo]||{}).cat;n.style.display=c?'block':'none';n.innerHTML=c?'<b>Catatan Admin:</b> '+esc(c)+cnHtml(editNo):''}
 const _s3=show;show=function(v,b){if(v=='form'){if(!editPending)resetForm()}else editNo=null;const keep=editPending;editPending=false;admCur=null;_s3(v,b);if(v=='form'&&!keep)formMode()};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-ed],[data-vf],[data-wd],[data-mn]');if(!b){if(!e.target.closest('.rmn'))rmClose();return}
@@ -595,15 +746,35 @@ const kvV=(no,q)=>{const v=((RX[no]||{}).kv||{})[q];return v=='ok'||v=='no'?v:''
  kvIdx=no=>((RX[no]||{}).f||{}).kib||[],kbRej=no=>kvIdx(no).filter(q=>kvV(no,q)=='no');
 const kvSumHtml=no=>{const a=kvIdx(no),ok=a.filter(q=>kvV(no,q)=='ok').length,no_=a.filter(q=>kvV(no,q)=='no').length;return `<span><b>${ok+no_}/${a.length}</b>Barang diperiksa</span><span><b>${ok}</b>Sesuai</span><span><b>${no_}</b>Ditolak</span>`};
 function kvTable(no,mode){const a=kvIdx(no);
- return `<div class="tw"><table class="kvt"><thead><tr><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th><th>Hasil</th><th>Keterangan</th></tr></thead><tbody>${a.map(q=>{const r=K[q],v=kvV(no,q),n=kvN(no,q);
-  return `<tr><td class="mono"><b>${r[0]}</b></td><td class="mono">${r[1]}</td><td><b>${r[2]}</b></td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${mode===true?`<select class="dsel ${v}" data-kv="${q}" aria-label="Hasil ${esc(r[2])}"><option value="">Belum diperiksa</option><option value="ok"${v=='ok'?' selected':''}>Sesuai</option><option value="no"${v=='no'?' selected':''}>Ditolak</option></select>`:v?PL(v=='ok'?'s-g':'s-r',v=='ok'?'Sesuai':'Ditolak'):'-'}</td><td>${mode===true?`<textarea data-kn="${q}" rows="2" placeholder="Keterangan pemeriksaan...">${esc(n)}</textarea>`:esc(n)||'-'}</td></tr>`}).join('')}</tbody></table></div><div class="kvs" id="kvs">${kvSumHtml(no)}</div>`}
+ const x=RX[no]||{},keep=x.keep||{kib:[]};
+ return `<div class="tw"><table class="kvt"><thead><tr><th>KIB ID</th><th>Kode Barang</th><th>Nama Barang</th><th>Tahun</th><th>Kondisi</th><th>Kuantitas</th><th>Satuan</th><th>Hasil</th><th>Keterangan</th></tr></thead><tbody>${a.map(q=>{const r=K[q],v=kvV(no,q),n=kvN(no,q),locked=mode===true&&v=='ok'&&(keep.kib||[]).includes(q);
+  return `<tr><td class="mono"><b>${r[0]}</b></td><td class="mono">${r[1]}</td><td><b>${r[2]}</b></td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${mode===true?`<select class="dsel ${v}" data-kv="${q}" aria-label="Hasil ${esc(r[2])}"${locked?' disabled':''}><option value="">Belum diperiksa</option><option value="ok"${v=='ok'?' selected':''}>Sesuai</option><option value="no"${v=='no'?' selected':''}>Ditolak</option></select>${locked?'<small class="mt"></small>':''}`:v?PL(v=='ok'?'s-g':'s-r',v=='ok'?'Sesuai':'Ditolak'):'-'}</td><td>${mode===true?`<textarea data-kn="${q}" rows="2" placeholder="Keterangan pemeriksaan..."${locked?' disabled':''}>${esc(n)}</textarea>`:esc(n)||'-'}</td></tr>`}).join('')}</tbody></table></div><div class="kvs" id="kvs">${kvSumHtml(no)}</div>`}
 const cnHtml=no=>{const l=cnList(no),bk=kbRej(no).map(q=>[K[q][2],kvN(no,q).trim()]).filter(a=>a[1]);return l.length||bk.length?`<div style="margin-top:6px"><b>Yang perlu diperbaiki:</b><ul style="margin:4px 0 0;padding-left:18px">${l.map(([i,n,t])=>`<li><b>${n}:</b> ${esc(t)}</li>`).join('')}${bk.map(([n,t])=>`<li><b>Barang ${esc(n)}:</b> ${esc(t)}</li>`).join('')}</ul></div>`:''};
 const chkSum=no=>{const n=chkC(no,'no');return chkN(no)+'/4 sesuai'+(n?' · '+n+' ditolak':'')};
 const vdone=no=>{const d=R.find(r=>r[0]==no);return !!d&&d[6]!='Draft'&&d[6]!='Menunggu Verifikasi'};
-function docRows(no,chk){const x=RX[no]||{},f=x.f||{docs:[],files:[]},ck=x.chk||[];
+function docRows(no,chk){const x=RX[no]||{},f=x.f||{docs:[],files:[]},ck=x.chk||[],keep=x.keep||{docs:{}};
  return DOCN.map((n,i)=>{const nm=(f.docs||[])[i],b=(f.files||[])[i],sv=cv(ck[i]),nt=(x.cn||[])[i]||'';
-  return`<div class="dr${nm?' y':''}"><span class="dn">${i+1}</span><div class="dm"><b>${n}</b><small class="mt">${nm?esc(nm)+(b?' · '+Math.max(1,Math.round(b.size/1024))+' KB':' · berkas tidak tersedia untuk pratinjau'):'Belum diunggah'}</small></div><div class="da">${b?`<button type="button" class="btn o sm" data-pvo="${i}" data-no="${esc(no)}">Lihat</button>`:''}${chk&&nm?`<select class="dsel ${cv(ck[i])}" data-chk="${i}" aria-label="Validasi ${esc(n)}"${chk==='ro'?' disabled':''}><option value="">Belum diperiksa</option><option value="ok"${cv(ck[i])=='ok'?' selected':''}>Sesuai</option><option value="no"${cv(ck[i])=='no'?' selected':''}>Ditolak</option></select>`:!chk&&nm&&cv(ck[i])&&vdone(no)?`<span class="stt ${cv(ck[i])=='ok'?'s-g':'s-r'}">${cv(ck[i])=='ok'?'Sesuai':'Ditolak'}</span>`:''}</div>${chk&&chk!=='ro'&&nm?`<div class="dnote" data-cnw="${i}"${sv=='no'?'':' hidden'}><label>Keterangan penolakan <em>(wajib diisi)</em><textarea data-cn="${i}" rows="2" placeholder="Jelaskan apa yang harus diperbaiki pemohon pada dokumen ini...">${esc(nt)}</textarea></label></div>`:(sv=='no'&&nm&&String(nt).trim()&&(chk==='ro'||(!chk&&vdone(no))))?`<div class="dnote ro"><b>Keterangan:</b> ${esc(nt)}</div>`:''}</div>`}).join('')}
+  const locked=chk===true&&sv=='ok'&&(keep.docs||{})[i]===sigDoc(f,i);
+  return`<div class="dr${nm?' y':''}"><span class="dn">${i+1}</span><div class="dm"><b>${n}</b><small class="mt">${nm?esc(nm)+(b?' · '+Math.max(1,Math.round(b.size/1024))+' KB':' · berkas tidak tersedia untuk pratinjau'):'Belum diunggah'}${locked?'<br>Validasi sebelumnya tetap berlaku.':''}</small></div><div class="da">${b?`<button type="button" class="btn o sm" data-pvo="${i}" data-no="${esc(no)}">Lihat</button>`:''}${chk&&nm?`<select class="dsel ${cv(ck[i])}" data-chk="${i}" aria-label="Validasi ${esc(n)}"${chk==='ro'||locked?' disabled':''}><option value="">Belum diperiksa</option><option value="ok"${cv(ck[i])=='ok'?' selected':''}>Sesuai</option><option value="no"${cv(ck[i])=='no'?' selected':''}>Ditolak</option></select>`:!chk&&nm&&cv(ck[i])&&vdone(no)?`<span class="stt ${cv(ck[i])=='ok'?'s-g':'s-r'}">${cv(ck[i])=='ok'?'Sesuai':'Ditolak'}</span>`:''}</div>${chk&&chk!=='ro'&&nm&&!locked?`<div class="dnote" data-cnw="${i}"${sv=='no'?'':' hidden'}><label>Keterangan penolakan <em>(wajib diisi)</em><textarea data-cn="${i}" rows="2" placeholder="Jelaskan apa yang harus diperbaiki pemohon pada dokumen ini...">${esc(nt)}</textarea></label></div>`:(sv=='no'&&nm&&String(nt).trim()&&(chk==='ro'||(!chk&&vdone(no))))?`<div class="dnote ro"><b>Keterangan:</b> ${esc(nt)}</div>`:''}</div>`}).join('')}
 let pvUrl=null;
+/* Laporan Penaksiran: PDF dinamis yang merujuk data KIB pada permohonan awal
+   serta bahan/tonase pada Permohonan Penaksiran dan hasil Kertas Kerja. */
+/* Laporan Penaksiran (Kertas Kerja): PDF ringkas tanpa logo/header; mesin PDF ada di kpknl.js (ringkasPdf) */
+function lpReportPdf(p){
+ const no=p.tksNo||p.no,d=R.find(r=>r[0]==no)||R.find(r=>r[0]==p.no)||[];
+ const rows=(p.o||[]).map((o,i)=>({n:o.n||'-',q:(o.q!==undefined&&o.q!==''&&o.q!==null?Number(o.q).toLocaleString('id-ID',{maximumFractionDigits:2}):'-')+' '+(o.sn||'Kg'),mt:o.mt||(isPas(o)?'Pendekatan Pasar':'Pendekatan Biaya'),nl:Math.round((kkNilai(p,i)||{}).nl||0)}));
+ return ringkasPdf('LAPORAN PENAKSIRAN BMD',[[p.no+' \u00B7 '+p.pd+' \u00B7 '+fd(p.tgl),0],[d[4]||'-',1]],rows);
+}
+function lpPreview(p){
+ if(!p)return;
+ pvClose();
+ pvUrl=URL.createObjectURL(lpReportPdf(p));
+ const nm='Laporan Penaksiran - '+String(p.no||'').replace(/[\\/:*?"<>|]+/g,'-')+'.pdf';
+ const m=document.createElement('div');m.id='pvm';m.className='pvm';
+ m.innerHTML=`<div class="pvb" role="dialog" aria-modal="true" aria-label="Pratinjau Laporan Penaksiran"><div class="pvh"><div><b>Laporan Penaksiran</b><small class="mt">${esc(p.no)} · ${esc(p.pd)}</small></div><div class="pva"><a class="btn o sm" href="${pvUrl}" download="${esc(nm)}">Unduh</a><a class="btn o sm" href="${pvUrl}" target="_blank" rel="noopener">Tab baru</a><button type="button" class="btn sm" data-pv="x">Tutup</button></div></div><iframe class="pvf" src="${pvUrl}" title="Pratinjau Laporan Penaksiran"></iframe></div>`;
+ m.onclick=e=>{if(e.target===m||e.target.closest('[data-pv=x]'))pvClose()};
+ document.body.appendChild(m);
+}
 function pvClose(){const m=$('#pvm');if(m)m.remove();if(pvUrl){URL.revokeObjectURL(pvUrl);pvUrl=null}}
 function pvOpen(no,k){const d=R.find(r=>r[0]==no);if(!d||!own(d))return deny();const f=(RX[no]||{}).f,b=f&&(f.files||[])[k];
  if(!b)return toast('Berkas belum tersedia untuk dipratinjau.');
@@ -653,20 +824,20 @@ function pgAdm(){if(!can('verifikasi'))return;const s=$('#adm'),r=R.map((d,i)=>[
    if(k=='Terima'&&chkN(d[0])<4)return toast('Validasi keempat dokumen terlebih dahulu (pilih Sesuai) sebelum menerima.');
    if(k=='Terima'&&kr.length)return toast('Ada barang KIB yang ditolak ('+tb.join(', ')+'). Ubah hasilnya atau pilih Tolak.');
    if(k=='Terima'&&kbl.length)return toast('Periksa semua barang KIB terlebih dahulu (pilih Sesuai) sebelum menerima.');
-   const x=RX[d[0]]=RX[d[0]]||{h:[]};if(k=='Terima'){d[6]='Dalam Proses';x.cat='';hs(d[0],'Diterima Admin, lanjut ke Survei Lapangan',c)}else{d[6]='Ditolak';x.cat=c;x.rj=[0,1,2,3].map(i=>sigDoc(f,i));hs(d[0],'Ditolak oleh Admin',c+(ti.length?' · '+ti.map(i=>DOCN[i]+': '+String(cn[i]).trim()).join(' · '):'')+(kr.length?' · Barang: '+kr.map(q=>K[q][2]+': '+kvN(d[0],q).trim()).join(' · '):''))}
+   const x=RX[d[0]]=RX[d[0]]||{h:[]};if(k=='Terima'){d[6]='Dalam Proses';x.cat='';delete x.keep;hs(d[0],'Diterima Admin, lanjut ke Survei Lapangan',c)}else{d[6]='Ditolak';x.cat=c;x.rj=[0,1,2,3].map(i=>sigDoc(f,i));x.keep={docs:{},kib:kvIdx(d[0]).filter(q=>kvV(d[0],q)=='ok')};(f.docs||[]).forEach((nm,i)=>{if(nm&&cv((x.chk||[])[i])=='ok')x.keep.docs[i]=sigDoc(f,i)});hs(d[0],'Ditolak oleh Admin',c+(ti.length?' · '+ti.map(i=>DOCN[i]+': '+String(cn[i]).trim()).join(' · '):'')+(kr.length?' · Barang: '+kr.map(q=>K[q][2]+': '+kvN(d[0],q).trim()).join(' · '):''))}
    toast(k=='Terima'?'Permohonan diterima dan masuk ke Survei Lapangan.':'Permohonan ditolak.');admCur=null;fl();pgAdm()};return}
  admRO=false;
 
  const vr=R.map((d,i)=>[d,i]).filter(([d])=>['Dalam Proses','Disetujui','Ditolak'].includes(d[6])),PS=5,np=Math.max(1,Math.ceil(vr.length/PS));admPgV=Math.min(Math.max(1,admPgV),np);
  const vp=vr.slice((admPgV-1)*PS,admPgV*PS);
- s.innerHTML=HD('Verifikasi Permohonan','')+ALR('Alur:','Permohonan diajukan pemohon &rarr; Admin memeriksa kelengkapan &rarr; terima (lanjut Survei Lapangan), minta revisi, atau tolak.')+sec('Permohonan Menunggu Verifikasi','menunggu Verifikasi',`<span class="stt s-b">${r.length} Permohonan</span>`)+(r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Pemohon</th><th>Dokumen</th><th>Aksi</th></tr></thead><tbody>${r.map(([d,i],k)=>`<tr><td>${k+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${d[11]}</td><td><button class="btn sm" data-ad="${i}">Periksa</button></td></tr>`).join('')}</tbody></table></div>`:EM('Tidak ada permohonan menunggu','Permohonan yang diajukan pemohon akan muncul di sini.'))+'</div>'+
- sec('Permohonan Telah Diverifikasi','Permohonan yang sudah diterima.',`<span class="stt s-g">${vr.length} Permohonan</span>`)+(vr.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Pemohon</th><th>Dokumen</th><th>Hasil Verifikasi</th><th>Status Saat Ini</th><th>Aksi</th></tr></thead><tbody>${vp.map(([d,i],k)=>`<tr><td>${(admPgV-1)*PS+k+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${d[11]}</td><td>${PL(d[6]=='Ditolak'?'s-r':'s-g',d[6]=='Ditolak'?'Ditolak':'Diterima')}</td><td>${st(d[6])}</td><td><button class="btn o sm" data-ad="${i}">Lihat</button></td></tr>`).join('')}</tbody></table></div><div class="pgn"><span>Menampilkan ${(admPgV-1)*PS+1}-${Math.min(admPgV*PS,vr.length)} dari ${vr.length} data</span><div>`+`<button data-ap="${Math.max(1,admPgV-1)}">&lsaquo;</button>`+Array.from({length:np},(_,k)=>`<button data-ap="${k+1}" class="${k+1==admPgV?'on':''}">${k+1}</button>`).join('')+`<button data-ap="${Math.min(np,admPgV+1)}">&rsaquo;</button></div></div>`:EM('Belum ada permohonan yang diverifikasi','Permohonan yang sudah diputuskan Admin akan muncul di sini.'))+'</div>';
+ s.innerHTML=HD('Verifikasi Permohonan','')+ALR('Alur:','Permohonan diajukan pemohon &rarr; Admin memeriksa kelengkapan &rarr; terima (lanjut Survei Lapangan), minta revisi, atau tolak.')+sec('Permohonan Menunggu Verifikasi','menunggu Verifikasi',`<span class="stt s-b">${r.length} Permohonan</span>`)+(r.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Pemohon</th><th>Dokumen</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody>${r.map(([d,i],k)=>`<tr><td>${k+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${d[11]}</td><td>${durCell(d[0],'admin')}</td><td><button class="btn sm" data-ad="${i}">Periksa</button></td></tr>`).join('')}</tbody></table></div>`:EM('Tidak ada permohonan menunggu','Permohonan yang diajukan pemohon akan muncul di sini.'))+'</div>'+
+ sec('Permohonan Telah Diverifikasi','Permohonan yang sudah diterima.',`<span class="stt s-g">${vr.length} Permohonan</span>`)+(vr.length?`<div class="tw"><table><thead><tr><th>No</th><th>Nomor Surat</th><th>Tanggal</th><th>Jenis</th><th>Pemohon</th><th>Dokumen</th><th>Hasil Verifikasi</th><th>Status Saat Ini</th><th>Durasi Proses</th><th>Aksi</th></tr></thead><tbody>${vp.map(([d,i],k)=>`<tr><td>${(admPgV-1)*PS+k+1}</td><td>${d[0]}</td><td>${d[5]}</td><td>${d[4]}</td><td>${d[1]}</td><td>${d[11]}</td><td>${PL(d[6]=='Ditolak'?'s-r':'s-g',d[6]=='Ditolak'?'Ditolak':'Diterima')}</td><td>${st(d[6])}</td><td>${durCell(d[0],'admin')}</td><td><button class="btn o sm" data-ad="${i}">Lihat</button></td></tr>`).join('')}</tbody></table></div><div class="pgn"><span>Menampilkan ${(admPgV-1)*PS+1}-${Math.min(admPgV*PS,vr.length)} dari ${vr.length} data</span><div>`+`<button data-ap="${Math.max(1,admPgV-1)}">&lsaquo;</button>`+Array.from({length:np},(_,k)=>`<button data-ap="${k+1}" class="${k+1==admPgV?'on':''}">${k+1}</button>`).join('')+`<button data-ap="${Math.min(np,admPgV+1)}">&rsaquo;</button></div></div>`:EM('Belum ada permohonan yang diverifikasi','Permohonan yang sudah diputuskan Admin akan muncul di sini.'))+'</div>';
  s.onchange=null;s.oninput=null;s.onclick=e=>{const p=e.target.closest('[data-ap]');if(p){admPgV=+p.dataset.ap;return pgAdm()}const b=e.target.closest('[data-ad]');if(b){admCur=+b.dataset.ad;pgAdm()}}}
 PG.adm=pgAdm;
 function dash(){const v=R.map((d,i)=>[d,i]).filter(([d])=>own(d)),c=x=>v.filter(([d])=>d[6]==x).length;
  $('#dsw').textContent=c('Menunggu Verifikasi');$('#dsp').textContent=c('Dalam Proses');$('#dss').textContent=c('Disetujui');
- $('#t1').innerHTML=v.slice(0,5).map(([d,i])=>`<tr><td class="dp" style="font-weight:700">${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[4]}</td><td>${d[5]}</td><td>${st(d[6])}</td><td><button class="db" data-r="${i}">Detail</button></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--mt);padding:26px">Belum ada permohonan.</td></tr>'}
- const _f2=fl;fl=function(){_f2();const n=R.filter(d=>d[6]=='Menunggu Verifikasi').length;$('#admc').textContent=n;const bb=$('#bellBtn b');bb.textContent=n;bb.style.display=n?'':'none';dash()};
+ $('#t1').innerHTML=v.slice(0,5).map(([d,i])=>`<tr><td class="dp" style="font-weight:700">${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[4]}</td><td>${d[5]}</td><td>${st(d[6])}</td><td>${durCell(d[0],'overall')}</td><td><button class="db" data-r="${i}">Detail</button></td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--mt);padding:26px">Belum ada permohonan.</td></tr>'}
+ const _f2=fl;fl=function(){_f2();try{phBadge()}catch(er){}const n=R.filter(d=>d[6]=='Menunggu Verifikasi').length;$('#admc').textContent=n;const bb=$('#bellBtn b');bb.textContent=n;bb.style.display=n?'':'none';dash()};
 
 const _s4=show;show=function(v,b){if(!CUR)return;if(v!='det')detCur=null;if(v=='list'&&!canView('list')){v='dash';b=null}if(!canView(v)){toast('Anda tidak memiliki akses ke halaman tersebut.');v='dash';b=null}_s4(v,b)};
 
@@ -697,15 +868,18 @@ function terapkanRemote(o){
  else if(v=='tksadm')pgTksAdmin();
  else if(v=='ob')pgOb();
  else if(v=='kk')pgKk();
- else if(v=='lpr')pgLp();
  else if((v=='lel'||v=='lgs')&&!pjCur)PG[v]();
  else if(v=='sk'&&!skCur)pgSk();
+ else if(v=='phu'||v=='phua'||v=='phs'||v=='phsl')phRefresh(v);
+ else if(v=='lpr'&&!lwCur)pgLp();
  else if(v=='form'){try{sum()}catch(er){}}
  const b=R.find(d=>own(d)&&lama.get(d[0])!==d[6]);
  if(b)toast(isAdmin()?(!lama.has(b[0])||lama.get(b[0])=='Draft'?'Permohonan baru masuk: '+b[0]+' ('+b[1]+')':'Status '+b[0]+' berubah: '+b[6]):'Status '+b[0]+' kini: '+b[6])}
 Store.onRemote(terapkanRemote,()=>location.reload());
-/* Start: muat data bersama (atau simpan data awal bila belum ada). lalu pilihkan sesi tab ini (Tambah upload file di surat permohonan) dan juga hapus ttd full (logic nya) */
-Store.init({R,RX,SVS,PEN,OB,KK,HP,PJ,SKN},a=>samplePdf(a[0],a[1]),'seed-2026-11-21-kkap').then(()=>{
+/* Untuk yang bagian PerihaL/Maksud di bagian Pengguna barang, samakan saja perihal nya dengan permohonan nya saja (pemindahtanganan atau izin bongkar), jadi Perihal/Maksud mengunci dari jenis permohonan
+
+Start: muat data bersama (atau simpan data awal bila belum ada). lalu pilihkan sesi tab ini (Tambah upload file di surat permohonan) dan juga hapus ttd full (logic nya) */
+Store.init({R,RX,SVS,PEN,OB,KK,HP,PJ,SKN,LPN,PH:PH_DATA},a=>samplePdf(a[0],a[1]),'seed-2026-11-21-kkap').then(()=>{
  Store.watch();
  const tq=location.search.match(/[?&]ttd=([\w-]+)/);if(tq){ttdPage(tq[1]);return}
  if(CUR)fl();else{const a=loadSession();if(a)masuk(a);else $('#lu').value=lastEmail()}});

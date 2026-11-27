@@ -13,7 +13,8 @@ const PJ_STEPS = {
   lel: [{ id: 'rl', t: 'Risalah Lelang', up: 'Upload Risalah Lelang' }, { id: 'bast', t: 'BAST', form: 1, up: 'Upload BAST' }],
   lgs: [{ id: 'bast', t: 'BAST', form: 1, up: 'Upload BAST' }, { id: 'ajb', t: 'AJB', form: 1, up: 'Upload AJB' }]
 };
-const PJ_MAX = 5 * 1048576;
+const PJ_MAX = 5 * 1024 * 1024;
+const PJ_ALAMAT_P1 = 'Jl. Pemuda No.31, RT.01/RW.06, Tanah Sareal, Kota Bogor, Jawa Barat';   /* alamat Pihak Kesatu (BAST) */
 const PJ_P1 = { nama: 'Agih Pribadi Kusumah, S.E.,M.Si', ktp: '3271042903850007', ttl: 'Garut, 19-03-1985', alamat: 'Bukit Cimanggu City Cluster Oakwood KC 5 RT/RW 005/015 Kel. Kencana Kec. Tanah Sareal', kerja: 'Pegawai Negeri Sipil', pangkat: 'Pembina - IV/a', nip: '198503292011011001', jabatan: 'Kepala Bidang Pengelolaan Barang Milik Daerah Pada Badan Keuangan dan Aset Daerah Kota Bogor' };
 
 /* ---------- utilitas angka & tanggal ---------- */
@@ -57,6 +58,7 @@ function pjStat(no, k) {
   const d = pjD(no, k), n = pjDone(no, k), t = PJ_STEPS[k].length;
   if (d.fin) return ['s-g', 'Selesai'];
   if (n == t) return ['s-b', 'Siap Diselesaikan'];
+  if (PJ_STEPS[k].some(s => d[s.id] && d[s.id].draft)) return ['s-o', 'Draft · ' + n + '/' + t];
   const any = PJ_STEPS[k].some(s => d[s.id] && (d[s.id].up || d[s.id].f));
   return any ? ['s-o', 'Proses · ' + n + '/' + t] : ['s-n', 'Belum Dimulai'];
 }
@@ -67,14 +69,15 @@ function pjBadge() {
     e.textContent = n; e.style.display = n ? '' : 'none';
   });
 }
-/* Dropdown menu samping: induk ikut menyala dan terbuka bila salah satu submenu aktif */
+/* Dropdown menu samping (Permohonan Penjualan, Penghapusan > Penetapan): induk ikut menyala dan terbuka bila salah satu submenu aktif */
 function pjSyncMenu() {
-  const tg = document.querySelector('[data-menu-toggle="penjualan-submenu"]'); if (!tg) return;
-  const on = !!document.querySelector('#penjualan-submenu .nav.on');
-  tg.classList.toggle('has-on', on);
-  const sub = document.getElementById('penjualan-submenu');
-  tg.setAttribute('aria-expanded', String(on));
-  if (sub) sub.hidden = !on;
+  document.querySelectorAll('[data-menu-toggle]').forEach(tg => {
+    const sub = document.getElementById(tg.dataset.menuToggle); if (!sub) return;
+    const on = !!sub.querySelector('.nav.on');
+    tg.classList.toggle('has-on', on);
+    tg.setAttribute('aria-expanded', String(on));
+    sub.hidden = !on;
+  });
   pjBadge();
 }
 
@@ -82,7 +85,7 @@ function pjSyncMenu() {
 const pjFields = (id, k) => id == 'bast' ? [
   ['nomor', 'Nomor BAST', 'text', 0, 'Contoh: 800.1.11.1/…-BKAD/2026'], ['tgl', 'Tanggal Serah Terima', 'date'],
   ['p1nama', 'Nama Pihak Kesatu (Pejabat Penjual)'], ['p1nip', 'NIP Pihak Kesatu'],
-  ['p1jabatan', 'Jabatan Pihak Kesatu', 'text', 1], ['p1pangkat', 'Pangkat / Golongan'], ['nosprint', 'Nomor Surat Perintah', 'text', 0, 'Contoh: 800.1.11.1 /SPRINT.3945-BKAD/2026'],
+  ['p1jabatan', 'Jabatan Pihak Kesatu', 'text', 1], ['p1alamat', 'Alamat Pihak Kesatu', 'text', 1], ['p1pangkat', 'Pangkat / Golongan'], ['nosprint', 'Nomor Surat Perintah', 'text', 0, 'Contoh: 800.1.11.1 /SPRINT.3945-BKAD/2026'],
   ['p2nama', 'Nama Pihak Kedua (' + (k == 'lel' ? 'Pemenang Lelang' : 'Pembeli') + ')'], ['p2alamat', 'Alamat Pihak Kedua', 'text', 1, 'Contoh: Kp. Tangkil Rt. 01 Rw. 05 Kel. Katulampa Kec. Bogor Timur Kota Bogor'],
   ['sts', 'Nomor STS'], ['nobank', 'Nomor Transaksi Bank'],
   ['opd', 'Perangkat Daerah'], ['alamatopd', 'Alamat Perangkat Daerah'],
@@ -97,7 +100,7 @@ const pjFields = (id, k) => id == 'bast' ? [
   ['nilai', 'Nilai Jual (Rp)', 'number'], ['sts', 'Nomor STS'], ['nobank', 'Nomor Transaksi Bank'],
   ['saksi1', 'Saksi 1'], ['saksi2', 'Saksi 2 (boleh dikosongkan)']
 ];
-const pjWajib = id => id == 'bast' ? ['nomor', 'tgl', 'p1nama', 'p1nip', 'p2nama', 'p2alamat', 'sts', 'nobank', 'opd', 'alamatopd', 'uraian', 'nosprint']
+const pjWajib = id => id == 'bast' ? ['nomor', 'tgl', 'p1nama', 'p1nip', 'p1alamat', 'p2nama', 'p2alamat', 'sts', 'nobank', 'opd', 'alamatopd', 'uraian', 'nosprint']
   : ['nomor', 'tgl', 'p1nama', 'p2nama', 'p2ktp', 'p2ttl', 'p2kerja', 'p2alamat', 'opd', 'alamatopd', 'uraian', 'nilai', 'sts', 'nobank'];
 const pjLbl = (id, k, key) => (pjFields(id, k).find(f => f[0] == key) || [0, key])[1];
 const PJ_SHARE = ['tgl', 'p1nama', 'p1nip', 'p1pangkat', 'p2nama', 'p2alamat', 'sts', 'nobank', 'uraian', 'opd', 'alamatopd'];
@@ -107,7 +110,7 @@ function pjDefault(p, k, id) {
   const alamat = (typeof alamatPermohonan == 'function' ? alamatPermohonan(p.no) : '') || (typeof alamatOpdTerakhir == 'function' ? alamatOpdTerakhir(p.pd) : '') || p.al || '';
   const f = {
     nomor: '', tgl: today(), p1nama: PJ_P1.nama, p1nip: PJ_P1.nip, p1pangkat: PJ_P1.pangkat, p1jabatan: PJ_P1.jabatan, nosprint: '',
-    p1ktp: PJ_P1.ktp, p1ttl: PJ_P1.ttl, p1alamat: PJ_P1.alamat, p1kerja: PJ_P1.kerja,
+    p1ktp: PJ_P1.ktp, p1ttl: PJ_P1.ttl, p1alamat: PJ_ALAMAT_P1, p1kerja: PJ_P1.kerja,
     p2nama: '', p2alamat: '', p2ktp: '', p2ttl: '', p2kerja: '', sts: '', nobank: '', saksi1: '', saksi2: '',
     opd: p.pd, alamatopd: alamat,
     uraian: n + ' (' + pjCap(pjTerbilang(n)) + ') Objek Barang Milik Daerah berupa ' + nm.slice(0, 3).join(', ') + (nm.length > 3 ? ' dan lainnya' : ''),
@@ -118,7 +121,10 @@ function pjDefault(p, k, id) {
 function pjF(no, k, id) {
   const p = OB.find(x => x.no == no), d = pjD(no, k), f = pjDefault(p, k, id), other = id == 'bast' ? 'ajb' : 'bast';
   if (d[other] && d[other].f) PJ_SHARE.forEach(q => { if (d[other].f[q]) f[q] = d[other].f[q]; });
-  return Object.assign(f, d[id] && d[id].f || {});
+  const o = Object.assign({}, f, d[id] && d[id].draft || {}, d[id] && d[id].f || {});
+  /* Draf lama yang alamat Pihak Kesatu-nya masih kosong ikut default. Alamat Pihak Kedua/Pembeli diisi manual (tanpa default) */
+  if (!String(o.p1alamat == null ? '' : o.p1alamat).trim()) o.p1alamat = f.p1alamat;
+  return o;
 }
 const pjCollect = (id, k) => { const f = {}; pjFields(id, k).forEach(([q]) => { const e = document.getElementById('pj_' + q); f[q] = e ? e.value.trim() : ''; }); return f; };
 const pjMiss = (id, k, F) => pjWajib(id).filter(q => !String(F[q] == null ? '' : F[q]).trim()).map(q => pjLbl(id, k, q));
@@ -185,13 +191,17 @@ function pjPick(no, k, id, re) {
   const d = pjD(no, k), s = PJ_STEPS[k].find(x => x.id == id);
   if (d.fin) return toast('Penjualan sudah diselesaikan dan dikunci.');
   if (s.form && !(d[id] && d[id].f)) return toast('Simpan data ' + s.t + ' terlebih dahulu, lalu unggah hasil yang sudah ditandatangani.');
-  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/pdf,image/png,image/jpeg';
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg';
   inp.onchange = () => {
     const f = inp.files[0]; if (!f) return;
-    if (!/^(application\/pdf|image\/(png|jpeg))$/.test(f.type)) return toast('Format harus PDF, JPG, atau PNG.');
-    if (f.size > PJ_MAX) return toast('Ukuran berkas maksimal 5 MB.');
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    const typeByExt = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+    const type = /^(application\/pdf|image\/(png|jpeg))$/.test(f.type) ? f.type
+      : (!f.type || f.type == 'application/octet-stream') ? typeByExt[ext] : null;
+    if (!type) return toast('Format harus PDF, JPG, atau PNG.', 'err');
+    if (f.size > PJ_MAX) return toast('Ukuran berkas maksimal 5 MB.', 'err');
     const T = pjD(no, k), baru = !(T[id] && T[id].up);
-    T[id] = T[id] || {}; T[id].up = { n: f.name, ty: f.type, sz: f.size, ts: nowStr(), files: [f] };
+    T[id] = T[id] || {}; T[id].up = { n: f.name, ty: type, sz: f.size, ts: nowStr(), files: [f] };
     Store.persist(); toast(s.t + (baru ? ' berhasil diunggah.' : ' diganti.'), 'ok'); re();
   };
   inp.click();
@@ -245,10 +255,10 @@ function pjDetail(s, k) {
   PJ_STEPS[k].forEach((sp, i) => {
     const ok = pjStepOk(d, sp);
     if (!sp.form) { body += ptSec((i + 1) + '. ' + sp.up, 'Unggah risalah lelang resmi.', pjUpRow(no, k, sp, ro)); return; }
-    const F = pjF(no, k, sp.id), saved = !!(d[sp.id] && d[sp.id].f);
-    body += `<div class="cd pt-sec"><div class="ch"><div><h2>${i + 1}. Input ${sp.t} dan ${sp.up}</h2><small class="mt">${sp.id == 'bast' ? 'Berita Acara Serah Terima' : 'Akta Jual Beli'}.</small></div>${PL(ok ? 's-g' : saved ? 's-b' : 's-n', ok ? 'Lengkap' : saved ? 'Data tersimpan' : 'Belum diisi')}</div>` +
+    const F = pjF(no, k, sp.id), saved = !!(d[sp.id] && d[sp.id].f), draft = !!(d[sp.id] && d[sp.id].draft);
+    body += `<div class="cd pt-sec"><div class="ch"><div><h2>${i + 1}. Input ${sp.t} dan ${sp.up}</h2><small class="mt">${sp.id == 'bast' ? 'Berita Acara Serah Terima' : 'Akta Jual Beli'}.</small></div>${PL(ok ? 's-g' : saved ? 's-b' : draft ? 's-o' : 's-n', ok ? 'Lengkap' : saved ? 'Data tersimpan' : draft ? 'Draft tersimpan' : 'Belum diisi')}</div>` +
       `<div class="ff">${pjFields(sp.id, k).map(f => pjInput(sp.id, k, f, F, ro)).join('')}</div>` +
-      (ro ? '' : `<div class="pt-bar" style="margin:14px 0 8px"><button type="button" class="btn" data-a="save" data-id="${sp.id}">Simpan Data ${sp.t}</button><button type="button" class="btn o" data-a="prev" data-id="${sp.id}">Pratinjau</button><button type="button" class="btn o" data-a="docx" data-id="${sp.id}">Unduh Word (.docx)</button><a class="btn o" href="assets/template/Template_${sp.t}.docx" download="Template ${sp.t}.docx">Unduh Template Kosong</a></div>`) +
+      (ro ? '' : `<div class="pt-bar" style="margin:14px 0 8px"><button type="button" class="btn o" data-a="draft" data-id="${sp.id}">Simpan Draft</button><button type="button" class="btn" data-a="save" data-id="${sp.id}">Simpan Data ${sp.t}</button><button type="button" class="btn o" data-a="prev" data-id="${sp.id}">Pratinjau</button><button type="button" class="btn o" data-a="docx" data-id="${sp.id}">Unduh Word (.docx)</button><a class="btn o" href="assets/template/Template_${sp.t}.docx" download="Template ${sp.t}.docx">Unduh Template Kosong</a></div>`) +
       `<div class="drs" style="margin-top:6px">${pjUpRow(no, k, sp, ro)}</div></div>`;
   });
   s.innerHTML = `<div class="pt-hd"><button class="btn o sm" data-a="bk">← Kembali ke daftar</button><div><h1>Penjualan ${L.t} · ${esc(no)}</h1><p>${esc(p.pd)} · ${pjIdx(p, k).length} objek · Nilai taksiran ${RP(pjNilai(p, k))}</p></div><span style="margin-left:auto">${PL(st[0], st[1])}</span></div>` +
@@ -263,13 +273,17 @@ function pjDetail(s, k) {
     if (a == 'view') return pjView(no, k, id);
     if (a == 'up') return pjPick(no, k, id, re);
     if (a == 'rm') return pjRm(no, k, id, re);
+    if (a == 'draft') {
+      const T = pjD(no, k); T[id] = T[id] || {}; T[id].draft = pjCollect(id, k); T[id].draftTs = nowStr();
+      Store.persist(); toast('Draft ' + PJ_STEPS[k].find(x => x.id == id).t + ' tersimpan. Anda dapat melanjutkan nanti.', 'ok'); return re();
+    }
     if (a == 'fin') return cfm('Selesaikan penjualan ' + L.t.toLowerCase() + '?', 'Dokumen dikunci dan tidak dapat diubah lagi.', () => {
       const T = pjD(no, k); if (pjDone(no, k) < tot) return; T.fin = true; T.ts = nowStr(); hs(no, 'Penjualan ' + L.t + ' selesai', 'Dokumen ' + PJ_STEPS[k].map(x => x.t).join(', ') + ' lengkap'); Store.persist(); toast('Penjualan ' + L.t.toLowerCase() + ' selesai.', 'ok'); pjBadge(); re();
     }, 'Selesai');
     const F = pjCollect(id, k), miss = pjMiss(id, k, F);
     if (a == 'save') {
       if (miss.length) return toast('Lengkapi dulu: ' + miss.join(', ') + '.', 'err');
-      const T = pjD(no, k); T[id] = T[id] || {}; T[id].f = F; T[id].ts = nowStr(); Store.persist(); toast('Data ' + id.toUpperCase() + ' tersimpan. Silakan unduh, tanda tangani, lalu unggah.', 'ok'); return re();
+      const T = pjD(no, k); T[id] = T[id] || {}; T[id].f = F; delete T[id].draft; delete T[id].draftTs; T[id].ts = nowStr(); Store.persist(); toast('Data ' + id.toUpperCase() + ' tersimpan. Silakan unduh, tanda tangani, lalu unggah.', 'ok'); return re();
     }
     if (miss.length) return toast('Lengkapi dulu: ' + miss.join(', ') + '.', 'err');
     b.disabled = true;
